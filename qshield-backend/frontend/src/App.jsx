@@ -41,10 +41,10 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout onScan={handleScan} />}>
           <Route index element={<Dashboard scanData={scanData} isLoading={isLoading} error={error} />} />
-          <Route path="assets" element={<Assets />} />
-          <Route path="monitoring" element={<Monitoring />} />
-          <Route path="security" element={<Security />} />
-          <Route path="analytics" element={<Analytics />} />
+          <Route path="assets" element={<Assets scanData={scanData} isLoading={isLoading} error={error} />} />
+          <Route path="monitoring" element={<Monitoring scanData={scanData} isLoading={isLoading} error={error} />} />
+          <Route path="security" element={<Security scanData={scanData} isLoading={isLoading} error={error} />} />
+          <Route path="analytics" element={<Analytics scanData={scanData} isLoading={isLoading} error={error} />} />
           <Route path="reports" element={<Reports scanData={scanData} isLoading={isLoading} error={error} />} />
           <Route path="settings" element={<Settings />} />
         </Route>

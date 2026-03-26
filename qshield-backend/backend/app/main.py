@@ -4,13 +4,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
+import os
 from backend.app.services.asset_discovery import discover_assets
 from backend.app.services.cbom_generator import generate_cbom
 from backend.app.services.pqc_risk import assess_pqc_risk
 from backend.app.services.rating_engine import calculate_rating
 from backend.app.services.nmap_scan import scan_ports
 from backend.app.services.real_crypto_scan import scan_tls
+from backend.app.services.storage import save_scan, get_latest_scans
 
 
 logger = logging.getLogger(__name__)
@@ -24,8 +27,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve the dashboard UI without shadowing API routes like /scan
-app.mount("/ui", StaticFiles(directory="frontend", html=True), name="frontend")
+# Mount static assets for the frontend
+app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
 
 class ScanRequest(BaseModel):
     domain: str
@@ -183,5 +186,25 @@ def scan_domain(request: ScanRequest):
         "cbom": cbom,
     }
 
+    save_scan(request.domain, response)
+
     return response
+
+@app.get("/scans")
+def get_scans_history():
+    return get_latest_scans()
+
+@app.get("/{full_path:path}")
+def serve_spa(full_path: str):
+    dist_path = os.path.join("frontend", "dist")
+    file_path = os.path.join(dist_path, full_path)
+    
+    if full_path and os.path.isfile(file_path):
+        return FileResponse(file_path)
+    
+    index_path = os.path.join(dist_path, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+        
+    return {"detail": "Frontend not built. Please run 'npm run build' in the frontend directory."}
 

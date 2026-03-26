@@ -1,0 +1,379 @@
+[
+  {
+    "timestamp": "2026-03-26T13:40:05.263370",
+    "domain": "vupune.ac.in",
+    "payload": {
+      "summary": {
+        "total_assets": 17,
+        "https_enabled": 17,
+        "http_only": 0,
+        "quantum_vulnerable": 17,
+        "quantum_safe": 0,
+        "high_risk_assets": 0
+      },
+      "counts": {
+        "domains": 17,
+        "ssl": 17,
+        "ips": 7
+      },
+      "inventory": {
+        "domains": [
+          "vuerp.vupune.ac.in",
+          "incon-ctlvu.vupune.ac.in",
+          "learner.vupune.ac.in",
+          "vunet.vupune.ac.in",
+          "iqube.vupune.ac.in",
+          "research.vupune.ac.in",
+          "onlineadmission.vupune.ac.in",
+          "icrcsd.vupune.ac.in",
+          "icsiaiml.vupune.ac.in",
+          "icaio.vupune.ac.in",
+          "vulj.vupune.ac.in",
+          "admission.vupune.ac.in",
+          "jstir.vupune.ac.in",
+          "erpadmin.vupune.ac.in",
+          "onlineadmissionapi.vupune.ac.in",
+          "www.vupune.ac.in",
+          "vupune.ac.in"
+        ],
+        "ssl_enabled": [
+          "learner.vupune.ac.in",
+          "vuerp.vupune.ac.in",
+          "iqube.vupune.ac.in",
+          "vunet.vupune.ac.in",
+          "incon-ctlvu.vupune.ac.in",
+          "onlineadmission.vupune.ac.in",
+          "research.vupune.ac.in",
+          "icrcsd.vupune.ac.in",
+          "icsiaiml.vupune.ac.in",
+          "icaio.vupune.ac.in",
+          "admission.vupune.ac.in",
+          "vulj.vupune.ac.in",
+          "jstir.vupune.ac.in",
+          "erpadmin.vupune.ac.in",
+          "onlineadmissionapi.vupune.ac.in",
+          "www.vupune.ac.in",
+          "vupune.ac.in"
+        ],
+        "http_only": [],
+        "ip_addresses": [
+          "108.159.91.123",
+          "108.159.91.34",
+          "108.159.91.76",
+          "13.205.231.9",
+          "13.234.61.250",
+          "3.109.191.27",
+          "65.1.32.72"
+        ],
+        "ports": [
+          80,
+          443
+        ]
+      },
+      "risk": "Low",
+      "score": 50,
+      "rating": "Legacy",
+      "quantum_status": "High Risk",
+      "classical_security": "Strong",
+      "quantum_security": "High Risk",
+      "insights": [
+        "All assets use TLSv1.3 (strong classical security)",
+        "HTTPS is enabled across all assets",
+        "All assets are quantum vulnerable"
+      ],
+      "assets": [
+        {
+          "domain": "vuerp.vupune.ac.in",
+          "ip": "108.159.91.34"
+        },
+        {
+          "domain": "incon-ctlvu.vupune.ac.in",
+          "ip": "13.234.61.250"
+        },
+        {
+          "domain": "learner.vupune.ac.in",
+          "ip": "108.159.91.123"
+        },
+        {
+          "domain": "vunet.vupune.ac.in",
+          "ip": "13.234.61.250"
+        },
+        {
+          "domain": "iqube.vupune.ac.in",
+          "ip": "13.234.61.250"
+        },
+        {
+          "domain": "research.vupune.ac.in",
+          "ip": "13.234.61.250"
+        },
+        {
+          "domain": "onlineadmission.vupune.ac.in",
+          "ip": "108.159.91.76"
+        },
+        {
+          "domain": "icrcsd.vupune.ac.in",
+          "ip": "13.234.61.250"
+        },
+        {
+          "domain": "icsiaiml.vupune.ac.in",
+          "ip": "13.234.61.250"
+        },
+        {
+          "domain": "icaio.vupune.ac.in",
+          "ip": "13.234.61.250"
+        },
+        {
+          "domain": "vulj.vupune.ac.in",
+          "ip": "13.234.61.250"
+        },
+        {
+          "domain": "admission.vupune.ac.in",
+          "ip": "13.234.61.250"
+        },
+        {
+          "domain": "jstir.vupune.ac.in",
+          "ip": "13.234.61.250"
+        },
+        {
+          "domain": "erpadmin.vupune.ac.in",
+          "ip": "13.205.231.9"
+        },
+        {
+          "domain": "onlineadmissionapi.vupune.ac.in",
+          "ip": "13.205.231.9"
+        },
+        {
+          "domain": "www.vupune.ac.in",
+          "ip": "3.109.191.27"
+        },
+        {
+          "domain": "vupune.ac.in",
+          "ip": "65.1.32.72"
+        }
+      ],
+      "cbom": [
+        {
+          "domain": "learner.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "vuerp.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "iqube.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "vunet.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "incon-ctlvu.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "onlineadmission.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "research.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "icrcsd.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "icsiaiml.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "icaio.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "admission.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "vulj.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "jstir.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "erpadmin.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "onlineadmissionapi.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "www.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        }
+      ]
+    }
+  }
+]
