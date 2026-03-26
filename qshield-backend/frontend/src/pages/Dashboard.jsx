@@ -1,4 +1,9 @@
 import Charts from '../components/Charts';
+import ThreatBanner from '../components/ThreatBanner';
+import LiveActivity from '../components/LiveActivity';
+import Recommendations from '../components/Recommendations';
+import AnalyticsWidgets from '../components/AnalyticsWidgets';
+import TopAssets from '../components/TopAssets';
 
 export default function Dashboard({ scanData, isLoading, error }) {
   if (isLoading) {
@@ -33,7 +38,7 @@ export default function Dashboard({ scanData, isLoading, error }) {
     );
   }
 
-  const { score, risk, quantum_status, summary } = scanData;
+  const { score, risk, quantum_status, summary, rating, insights } = scanData;
 
   const totalAssets = summary?.total_assets || 0;
   const highRisk = summary?.high_risk_assets || 0;
@@ -56,6 +61,7 @@ export default function Dashboard({ scanData, isLoading, error }) {
 
   return (
     <div className="grid grid-cols-12 gap-8 auto-rows-min">
+      <ThreatBanner risk={risk} rating={rating} />
       <section className="col-span-12 glass-card rounded-lg p-8 shadow-2xl shadow-[#1d1b19]/5">
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -117,7 +123,11 @@ export default function Dashboard({ scanData, isLoading, error }) {
           ))}
         </div>
       </section>
+      <LiveActivity summary={summary} />
+      <Recommendations insights={insights} />
       <Charts data={scanData} />
+      <AnalyticsWidgets data={scanData} />
+      <TopAssets data={scanData} />
     </div>
   );
 }

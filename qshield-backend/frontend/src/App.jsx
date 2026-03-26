@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -18,6 +18,17 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('scanData');
+      if (saved) {
+        setScanData(JSON.parse(saved));
+      }
+    } catch (err) {
+      console.error('Failed to load scanData from storage:', err);
+    }
+  }, []);
+
   const handleScan = async (domain) => {
     setIsLoading(true);
     setError(null);
@@ -33,6 +44,11 @@ export default function App() {
       }
       const data = await response.json();
       setScanData(data);
+      try {
+        localStorage.setItem('scanData', JSON.stringify(data));
+      } catch (err) {
+        console.error('Failed to persist scanData:', err);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -50,10 +66,10 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Layout onScan={handleScan} />}>
               <Route index element={<Dashboard scanData={scanData} isLoading={isLoading} error={error} />} />
-              <Route path="assets" element={<Assets />} />
-              <Route path="monitoring" element={<Monitoring />} />
-              <Route path="security" element={<Security />} />
-              <Route path="analytics" element={<Analytics />} />
+              <Route path="assets" element={<Assets scanData={scanData} isLoading={isLoading} error={error} />} />
+              <Route path="monitoring" element={<Monitoring scanData={scanData} isLoading={isLoading} error={error} />} />
+              <Route path="security" element={<Security scanData={scanData} isLoading={isLoading} error={error} />} />
+              <Route path="analytics" element={<Analytics scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="reports" element={<Reports scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="settings" element={<Settings />} />
             </Route>
