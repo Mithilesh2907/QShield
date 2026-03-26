@@ -41,7 +41,7 @@ export default function Reports({ scanData, isLoading, error }) {
   return (
     <div className="grid grid-cols-12 gap-8 auto-rows-min">
       {/* On-Demand Reporting Section */}
-      <OnDemandReporting />
+      <OnDemandReporting scanData={scanData} />
 
       {/* Overview Stats */}
       <section className="col-span-12 lg:col-span-8 glass-card rounded-lg p-8 shadow-2xl shadow-[#1d1b19]/5 flex flex-col justify-between min-h-[280px]">
