@@ -5,7 +5,7 @@ import { AuthContext } from '../context/AuthContext';
 const navItems = [
   { path: '/', icon: 'dashboard', label: 'Dashboard' },
   { path: '/assets', icon: 'inventory_2', label: 'Assets' },
-  { path: '/monitoring', icon: 'monitor_heart', label: 'Monitoring' },
+  // { path: '/monitoring', icon: 'monitor_heart', label: 'Monitoring' },
   { path: '/security', icon: 'security', label: 'Security' },
   { path: '/analytics', icon: 'analytics', label: 'Analytics' },
   { path: '/reports', icon: 'description', label: 'Reports', fill: true },
