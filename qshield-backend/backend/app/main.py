@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from pathlib import Path
 import os
 from backend.app.services.asset_discovery import discover_assets
 from backend.app.services.cbom_generator import generate_cbom
@@ -29,8 +30,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static assets for the frontend
-app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
+# Mount static assets for the frontend if they exist
+static_assets_dir = Path("frontend/dist/assets")
+if static_assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(static_assets_dir)), name="assets")
 
 class ScanRequest(BaseModel):
     domain: str
