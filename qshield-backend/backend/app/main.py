@@ -13,9 +13,17 @@ from backend.app.services.real_crypto_scan import scan_tls
 
 logger = logging.getLogger(__name__)
 app = FastAPI()
-from fastapi.staticfiles import StaticFiles
 
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Moved StaticFiles mount to the bottom
 
 class ScanRequest(BaseModel):
     domain: str
@@ -174,3 +182,10 @@ def scan_domain(request: ScanRequest):
     }
 
     return response
+
+from fastapi.staticfiles import StaticFiles
+import os
+
+# Serve the static build of the React app if it exists
+if os.path.exists("frontend/dist"):
+    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="frontend")

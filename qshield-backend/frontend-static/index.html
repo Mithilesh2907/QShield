@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Security Command Center - Reports</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-fixed-dim": "#ffb786",
+              "secondary": "#964900",
+              "on-error-container": "#93000a",
+              "primary-fixed-dim": "#ffb3b3",
+              "outline-variant": "#e1bebe",
+              "surface-container-lowest": "#ffffff",
+              "surface-container": "#f3ede8",
+              "on-secondary-container": "#5e2c00",
+              "on-error": "#ffffff",
+              "tertiary-fixed": "#ffdeac",
+              "tertiary-fixed-dim": "#ffba38",
+              "on-tertiary-fixed-variant": "#604100",
+              "secondary-fixed": "#ffdcc6",
+              "surface-bright": "#fef8f3",
+              "error": "#ba1a1a",
+              "on-surface": "#1d1b19",
+              "surface-dim": "#ded9d4",
+              "on-tertiary": "#ffffff",
+              "inverse-surface": "#32302d",
+              "on-surface-variant": "#594141",
+              "on-secondary": "#ffffff",
+              "on-background": "#1d1b19",
+              "on-tertiary-container": "#ffbf4c",
+              "secondary-container": "#fc820c",
+              "surface-container-highest": "#e7e1dd",
+              "background": "#fef8f3",
+              "surface-container-low": "#f8f3ee",
+              "tertiary-container": "#724e00",
+              "on-primary-fixed-variant": "#900723",
+              "surface": "#fef8f3",
+              "on-tertiary-fixed": "#281900",
+              "on-primary-container": "#ffb8b8",
+              "primary-fixed": "#ffdad9",
+              "on-secondary-fixed-variant": "#723600",
+              "primary-container": "#a51c30",
+              "inverse-primary": "#ffb3b3",
+              "error-container": "#ffdad6",
+              "on-secondary-fixed": "#311300",
+              "surface-container-high": "#ede7e2",
+              "tertiary": "#543800",
+              "surface-tint": "#b22738",
+              "outline": "#8d7070",
+              "primary": "#81001d",
+              "inverse-on-surface": "#f6f0eb",
+              "on-primary": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .tech-pattern {
+            background-image: radial-gradient(circle at 2px 2px, rgba(150, 73, 0, 0.05) 1px, transparent 0);
+            background-size: 32px 32px;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="fixed inset-y-0 left-0 z-50 flex flex-col py-6 bg-gradient-to-b from-[#81001d] to-[#a51c30] docked left-0 h-full w-64 shadow-2xl shadow-[#1d1b19]/20">
+<div class="px-6 mb-10">
+<h1 class="text-xl font-bold text-white tracking-tighter uppercase">Luminous Guardian</h1>
+<p class="text-[10px] text-white/50 font-medium tracking-[0.2em] uppercase mt-1">Ethereal Fortress v1.0</p>
+</div>
+<nav class="flex-1 space-y-1 px-2">
+<!-- Dashboard -->
+<a class="text-white/70 hover:text-white mx-2 px-4 py-3 flex items-center gap-3 transition-all font-inter text-sm font-medium tracking-wide uppercase group" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<!-- Assets -->
+<a class="text-white/70 hover:text-white mx-2 px-4 py-3 flex items-center gap-3 transition-all font-inter text-sm font-medium tracking-wide uppercase group" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span>Assets</span>
+</a>
+<!-- Monitoring -->
+<a class="text-white/70 hover:text-white mx-2 px-4 py-3 flex items-center gap-3 transition-all font-inter text-sm font-medium tracking-wide uppercase group" href="#">
+<span class="material-symbols-outlined" data-icon="monitor_heart">monitor_heart</span>
+<span>Monitoring</span>
+</a>
+<!-- Security -->
+<a class="text-white/70 hover:text-white mx-2 px-4 py-3 flex items-center gap-3 transition-all font-inter text-sm font-medium tracking-wide uppercase group" href="#">
+<span class="material-symbols-outlined" data-icon="security">security</span>
+<span>Security</span>
+</a>
+<!-- Analytics -->
+<a class="text-white/70 hover:text-white mx-2 px-4 py-3 flex items-center gap-3 transition-all font-inter text-sm font-medium tracking-wide uppercase group" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Analytics</span>
+</a>
+<!-- Reports - ACTIVE -->
+<a class="bg-[#964900] text-white rounded-xl mx-2 px-4 py-3 flex items-center gap-3 shadow-lg shadow-[#964900]/40 font-inter text-sm font-medium tracking-wide uppercase" href="#">
+<span class="material-symbols-outlined" data-icon="description" style="font-variation-settings: 'FILL' 1;">description</span>
+<span>Reports</span>
+</a>
+</nav>
+<div class="mt-auto px-4 space-y-1">
+<a class="text-white/70 hover:text-white mx-2 px-4 py-3 flex items-center gap-3 transition-all font-inter text-sm font-medium tracking-wide uppercase" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<button class="w-full mt-4 bg-gradient-to-r from-secondary to-secondary-container text-white py-3 px-4 rounded-xl font-bold uppercase text-xs tracking-widest shadow-xl shadow-secondary/20 active:scale-95 transition-all">
+                Emergency Lockdown
+            </button>
+</div>
+</aside>
+<!-- Main Content Shell -->
+<main class="fixed top-0 right-0 left-64 bottom-0 flex flex-col overflow-y-auto bg-surface tech-pattern">
+<!-- Top App Bar -->
+<header class="fixed top-0 right-0 left-64 h-16 flex items-center justify-between px-8 z-40 bg-[#fef8f3]/80 backdrop-blur-md">
+<div class="flex items-center gap-4">
+<h2 class="font-inter text-lg font-bold text-[#594141]">Security Command Center</h2>
+<span class="h-4 w-[1px] bg-outline-variant/30"></span>
+<span class="text-xs font-bold uppercase tracking-widest text-secondary">Operational Mode</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-sm">search</span>
+<input class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-1.5 text-sm focus:ring-2 focus:ring-secondary/20 w-64" placeholder="Search parameters..." type="text"/>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant">
+<button class="material-symbols-outlined hover:text-secondary transition-colors" data-icon="notifications">notifications</button>
+<button class="material-symbols-outlined hover:text-secondary transition-colors" data-icon="help_outline">help_outline</button>
+<div class="h-8 w-8 rounded-full bg-primary-container overflow-hidden ring-2 ring-white shadow-sm">
+<img alt="Admin User" data-alt="Security operator profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCI1xeVQb-lbsfGm_1pD2jJVu91VHZjIqoFxvsH_pf5-RAzdw3fUUV8kwk3o4FFp_U2tTxT9KWLX9w6ZjAnkwXk09adXdPhPaOghROJcPuFcxr42btjE9jBYBjNXp5Jnc_Y5RIbBfgWqCT7-_NiLeQuFNRq1-zaY-hk1hkvWyPbCsdhetULrPe9tW_ncKRhzLtuD1pmqKYy4N7xFXCjMi_r8DCDXMF853qh3z0UXnIw3SovrfHpL2LoP1c59PYT1l124X6gFrg5QG8"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="mt-16 p-8 space-y-8 max-w-[1600px]">
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-8 auto-rows-min">
+<!-- Card 1: Overview Stats (Wide Glass) -->
+<section class="col-span-12 lg:col-span-8 glass-card rounded-lg p-8 shadow-2xl shadow-[#1d1b19]/5 flex flex-col justify-between min-h-[280px]">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="font-headline text-2xl font-extrabold text-on-surface tracking-tight">Overview Stats</h3>
+<p class="text-on-surface-variant text-sm mt-1">Real-time engagement and throughput metrics.</p>
+</div>
+<span class="bg-secondary/10 text-secondary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Live Feed</span>
+</div>
+<div class="grid grid-cols-3 gap-8">
+<div class="space-y-1">
+<span class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/60">Active Users</span>
+<div class="text-4xl font-black text-primary">1,240</div>
+<div class="flex items-center gap-1 text-xs text-green-600 font-bold">
+<span class="material-symbols-outlined text-sm">trending_up</span> +12%
+                            </div>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/60">Data Traffic</span>
+<div class="text-4xl font-black text-on-surface">4.2<span class="text-xl">TB</span></div>
+<div class="flex items-center gap-1 text-xs text-secondary font-bold">
+<span class="material-symbols-outlined text-sm">horizontal_rule</span> Steady
+                            </div>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/60">Critical Alerts</span>
+<div class="text-4xl font-black text-error">12</div>
+<div class="flex items-center gap-1 text-xs text-error font-bold">
+<span class="material-symbols-outlined text-sm">warning</span> Action Required
+                            </div>
+</div>
+</div>
+</section>
+<!-- Card 2: System Health (Compact Glass) -->
+<section class="col-span-12 lg:col-span-4 glass-card rounded-lg p-8 shadow-2xl shadow-[#1d1b19]/5 min-h-[280px]">
+<h3 class="font-headline text-lg font-bold text-on-surface mb-6">System Health</h3>
+<div class="space-y-6">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="w-3 h-3 rounded-full bg-green-500 shadow-lg shadow-green-500/30"></span>
+<span class="font-medium text-sm">Main Infrastructure</span>
+</div>
+<span class="text-xs font-bold text-on-surface-variant uppercase">Good</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="w-3 h-3 rounded-full bg-secondary shadow-lg shadow-secondary/30"></span>
+<span class="font-medium text-sm">API Gateways</span>
+</div>
+<span class="text-xs font-bold text-on-surface-variant uppercase">Warning</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="w-3 h-3 rounded-full bg-error shadow-lg shadow-error/30"></span>
+<span class="font-medium text-sm">Encryption Modules</span>
+</div>
+<span class="text-xs font-bold text-on-surface-variant uppercase">Critical</span>
+</div>
+<div class="pt-4 mt-2 border-t border-outline-variant/20">
+<button class="text-xs font-bold text-secondary uppercase hover:underline">Full Diagnostic</button>
+</div>
+</div>
+</section>
+<!-- Card 3: Resource Summary (Tonal Card) -->
+<section class="col-span-12 md:col-span-6 lg:col-span-4 bg-surface-container-low rounded-lg p-8">
+<h3 class="font-headline text-lg font-bold text-on-surface mb-6">Resource Summary</h3>
+<div class="space-y-3">
+<div class="p-4 bg-surface rounded-xl flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="dns">dns</span>
+<span class="font-bold text-sm">Servers</span>
+</div>
+<span class="text-sm font-black text-on-surface-variant">42 Active</span>
+</div>
+<div class="p-4 bg-surface rounded-xl flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="api">api</span>
+<span class="font-bold text-sm">APIs</span>
+</div>
+<span class="text-sm font-black text-on-surface-variant">128 Endpoints</span>
+</div>
+<div class="p-4 bg-surface rounded-xl flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="devices">devices</span>
+<span class="font-bold text-sm">Devices</span>
+</div>
+<span class="text-sm font-black text-on-surface-variant">2,410 Units</span>
+</div>
+</div>
+</section>
+<!-- Card 4: Progress Tracking (Editorial Card) -->
+<section class="col-span-12 md:col-span-6 lg:col-span-4 glass-card rounded-lg p-8 shadow-2xl shadow-[#1d1b19]/5">
+<h3 class="font-headline text-lg font-bold text-on-surface mb-6">Deployment Progress</h3>
+<div class="space-y-8">
+<div class="space-y-3">
+<div class="flex justify-between items-end">
+<span class="text-sm font-bold">System Update</span>
+<span class="text-2xl font-black text-secondary">85%</span>
+</div>
+<div class="h-3 w-full bg-secondary-fixed rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-secondary to-secondary-container rounded-full" style="width: 85%"></div>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-end">
+<span class="text-sm font-bold">Data Migration</span>
+<span class="text-2xl font-black text-primary">42%</span>
+</div>
+<div class="h-3 w-full bg-primary-fixed rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-primary-container rounded-full" style="width: 42%"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Card 5: Recent Alerts (Asymmetric Tall Card) -->
+<section class="col-span-12 lg:col-span-4 glass-card rounded-lg p-8 shadow-2xl shadow-[#1d1b19]/5 row-span-1 lg:row-span-1">
+<h3 class="font-headline text-lg font-bold text-on-surface mb-6">Recent Alerts</h3>
+<div class="space-y-4">
+<div class="relative pl-6 pb-6 border-l-2 border-outline-variant/30 last:pb-0">
+<div class="absolute -left-[7px] top-0 w-3 h-3 rounded-full bg-error ring-4 ring-surface"></div>
+<span class="text-[10px] font-bold text-on-surface-variant/50 uppercase">2 mins ago</span>
+<h4 class="text-sm font-bold mt-1">Unauthorized Login Attempt</h4>
+<p class="text-xs text-on-surface-variant mt-1 leading-relaxed">IP: 192.168.1.104 flagged for repeated failures in Sector-7.</p>
+</div>
+<div class="relative pl-6 pb-6 border-l-2 border-outline-variant/30 last:pb-0">
+<div class="absolute -left-[7px] top-0 w-3 h-3 rounded-full bg-secondary ring-4 ring-surface"></div>
+<span class="text-[10px] font-bold text-on-surface-variant/50 uppercase">1 hour ago</span>
+<h4 class="text-sm font-bold mt-1">SSL Certificate Expiry</h4>
+<p class="text-xs text-on-surface-variant mt-1 leading-relaxed">Legacy gateway cert expires in 48 hours. Renewal required.</p>
+</div>
+<div class="relative pl-6 border-l-2 border-transparent last:pb-0">
+<div class="absolute -left-[7px] top-0 w-3 h-3 rounded-full bg-surface-container-highest ring-4 ring-surface"></div>
+<span class="text-[10px] font-bold text-on-surface-variant/50 uppercase">4 hours ago</span>
+<h4 class="text-sm font-bold mt-1">Scheduled Backup Complete</h4>
+<p class="text-xs text-on-surface-variant mt-1 leading-relaxed">Global node synchronization finished successfully.</p>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Footer Accent -->
+<footer class="mt-auto p-8 border-t border-outline-variant/10 text-on-surface-variant/40 text-[10px] font-bold uppercase tracking-widest flex justify-between items-center">
+<span>© 2024 Luminous Guardian Security Services</span>
+<div class="flex gap-4">
+<a class="hover:text-secondary transition-colors" href="#">Privacy</a>
+<a class="hover:text-secondary transition-colors" href="#">Compliance</a>
+<a class="hover:text-secondary transition-colors" href="#">Support</a>
+</div>
+</footer>
+</main>
+</body></html>
