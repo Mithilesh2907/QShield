@@ -375,5 +375,1376 @@
         }
       ]
     }
+  },
+  {
+    "timestamp": "2026-03-26T13:43:56.043426",
+    "domain": "vupune.ac.in",
+    "payload": {
+      "summary": {
+        "total_assets": 17,
+        "https_enabled": 17,
+        "http_only": 0,
+        "quantum_vulnerable": 17,
+        "quantum_safe": 0,
+        "high_risk_assets": 0
+      },
+      "counts": {
+        "domains": 17,
+        "ssl": 17,
+        "ips": 6
+      },
+      "inventory": {
+        "domains": [
+          "icaio.vupune.ac.in",
+          "icrcsd.vupune.ac.in",
+          "vuerp.vupune.ac.in",
+          "learner.vupune.ac.in",
+          "incon-ctlvu.vupune.ac.in",
+          "erpadmin.vupune.ac.in",
+          "iqube.vupune.ac.in",
+          "onlineadmission.vupune.ac.in",
+          "onlineadmissionapi.vupune.ac.in",
+          "jstir.vupune.ac.in",
+          "research.vupune.ac.in",
+          "vupune.ac.in",
+          "vulj.vupune.ac.in",
+          "admission.vupune.ac.in",
+          "icsiaiml.vupune.ac.in",
+          "vunet.vupune.ac.in",
+          "www.vupune.ac.in"
+        ],
+        "ssl_enabled": [
+          "learner.vupune.ac.in",
+          "vuerp.vupune.ac.in",
+          "icaio.vupune.ac.in",
+          "incon-ctlvu.vupune.ac.in",
+          "icrcsd.vupune.ac.in",
+          "onlineadmission.vupune.ac.in",
+          "iqube.vupune.ac.in",
+          "erpadmin.vupune.ac.in",
+          "onlineadmissionapi.vupune.ac.in",
+          "jstir.vupune.ac.in",
+          "research.vupune.ac.in",
+          "vulj.vupune.ac.in",
+          "vupune.ac.in",
+          "admission.vupune.ac.in",
+          "icsiaiml.vupune.ac.in",
+          "vunet.vupune.ac.in",
+          "www.vupune.ac.in"
+        ],
+        "http_only": [],
+        "ip_addresses": [
+          "108.159.91.123",
+          "108.159.91.80",
+          "108.159.91.88",
+          "13.205.231.9",
+          "3.6.209.22",
+          "35.154.92.192"
+        ],
+        "ports": [
+          80,
+          443
+        ]
+      },
+      "risk": "Low",
+      "score": 50,
+      "rating": "Legacy",
+      "quantum_status": "High Risk",
+      "classical_security": "Strong",
+      "quantum_security": "High Risk",
+      "insights": [
+        "All assets use TLSv1.3 (strong classical security)",
+        "HTTPS is enabled across all assets",
+        "All assets are quantum vulnerable"
+      ],
+      "assets": [
+        {
+          "domain": "icaio.vupune.ac.in",
+          "ip": "35.154.92.192"
+        },
+        {
+          "domain": "icrcsd.vupune.ac.in",
+          "ip": "35.154.92.192"
+        },
+        {
+          "domain": "vuerp.vupune.ac.in",
+          "ip": "108.159.91.88"
+        },
+        {
+          "domain": "learner.vupune.ac.in",
+          "ip": "108.159.91.123"
+        },
+        {
+          "domain": "incon-ctlvu.vupune.ac.in",
+          "ip": "35.154.92.192"
+        },
+        {
+          "domain": "erpadmin.vupune.ac.in",
+          "ip": "13.205.231.9"
+        },
+        {
+          "domain": "iqube.vupune.ac.in",
+          "ip": "35.154.92.192"
+        },
+        {
+          "domain": "onlineadmission.vupune.ac.in",
+          "ip": "108.159.91.80"
+        },
+        {
+          "domain": "onlineadmissionapi.vupune.ac.in",
+          "ip": "13.205.231.9"
+        },
+        {
+          "domain": "jstir.vupune.ac.in",
+          "ip": "35.154.92.192"
+        },
+        {
+          "domain": "research.vupune.ac.in",
+          "ip": "35.154.92.192"
+        },
+        {
+          "domain": "vupune.ac.in",
+          "ip": "3.6.209.22"
+        },
+        {
+          "domain": "vulj.vupune.ac.in",
+          "ip": "35.154.92.192"
+        },
+        {
+          "domain": "admission.vupune.ac.in",
+          "ip": "35.154.92.192"
+        },
+        {
+          "domain": "icsiaiml.vupune.ac.in",
+          "ip": "35.154.92.192"
+        },
+        {
+          "domain": "vunet.vupune.ac.in",
+          "ip": "35.154.92.192"
+        },
+        {
+          "domain": "www.vupune.ac.in",
+          "ip": "3.6.209.22"
+        }
+      ],
+      "cbom": [
+        {
+          "domain": "learner.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "vuerp.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "icaio.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "incon-ctlvu.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "icrcsd.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "onlineadmission.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "iqube.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "erpadmin.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "onlineadmissionapi.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "jstir.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "research.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "vulj.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "admission.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "icsiaiml.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "vunet.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "www.vupune.ac.in",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        }
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-03-26T13:46:28.693577",
+    "domain": "meta.com",
+    "payload": {
+      "summary": {
+        "total_assets": 20,
+        "https_enabled": 20,
+        "http_only": 0,
+        "quantum_vulnerable": 20,
+        "quantum_safe": 0,
+        "high_risk_assets": 0
+      },
+      "counts": {
+        "domains": 20,
+        "ssl": 20,
+        "ips": 5
+      },
+      "inventory": {
+        "domains": [
+          "bigzipfiles.auth.meta.com",
+          "gateway.work.meta.com",
+          "gateway.spark.meta.com",
+          "gateway.quest.meta.com",
+          "gateway.horizon.meta.com",
+          "edge-chat.www.meta.com",
+          "gateway.developers.meta.com",
+          "ai.meta.com",
+          "auth.meta.com",
+          "about.meta.com",
+          "accountscenter.meta.com",
+          "familycenter.meta.com",
+          "accounts.meta.com",
+          "ar.meta.com",
+          "horizon.meta.com",
+          "alpha.www.meta.com",
+          "beta.www.meta.com",
+          "help.meta.com",
+          "alpha.work.meta.com",
+          "bugbounty.meta.com"
+        ],
+        "ssl_enabled": [
+          "bigzipfiles.auth.meta.com",
+          "gateway.horizon.meta.com",
+          "gateway.work.meta.com",
+          "gateway.spark.meta.com",
+          "gateway.quest.meta.com",
+          "auth.meta.com",
+          "about.meta.com",
+          "edge-chat.www.meta.com",
+          "ai.meta.com",
+          "gateway.developers.meta.com",
+          "accountscenter.meta.com",
+          "familycenter.meta.com",
+          "accounts.meta.com",
+          "horizon.meta.com",
+          "ar.meta.com",
+          "beta.www.meta.com",
+          "help.meta.com",
+          "alpha.work.meta.com",
+          "alpha.www.meta.com",
+          "bugbounty.meta.com"
+        ],
+        "http_only": [],
+        "ip_addresses": [
+          "57.144.124.141",
+          "57.144.124.145",
+          "57.144.210.128",
+          "57.144.210.141",
+          "57.144.42.136"
+        ],
+        "ports": [
+          80,
+          443
+        ]
+      },
+      "risk": "Low",
+      "score": 50,
+      "rating": "Legacy",
+      "quantum_status": "High Risk",
+      "classical_security": "Strong",
+      "quantum_security": "High Risk",
+      "insights": [
+        "All assets use TLSv1.3 (strong classical security)",
+        "HTTPS is enabled across all assets",
+        "All assets are quantum vulnerable"
+      ],
+      "assets": [
+        {
+          "domain": "bigzipfiles.auth.meta.com",
+          "ip": "57.144.210.128"
+        },
+        {
+          "domain": "gateway.work.meta.com",
+          "ip": "57.144.124.145"
+        },
+        {
+          "domain": "gateway.spark.meta.com",
+          "ip": "57.144.124.145"
+        },
+        {
+          "domain": "gateway.quest.meta.com",
+          "ip": "57.144.124.145"
+        },
+        {
+          "domain": "gateway.horizon.meta.com",
+          "ip": "57.144.124.145"
+        },
+        {
+          "domain": "edge-chat.www.meta.com",
+          "ip": "57.144.210.141"
+        },
+        {
+          "domain": "gateway.developers.meta.com",
+          "ip": "57.144.124.145"
+        },
+        {
+          "domain": "ai.meta.com",
+          "ip": "57.144.124.141"
+        },
+        {
+          "domain": "auth.meta.com",
+          "ip": "57.144.124.141"
+        },
+        {
+          "domain": "about.meta.com",
+          "ip": "57.144.124.141"
+        },
+        {
+          "domain": "accountscenter.meta.com",
+          "ip": "57.144.124.141"
+        },
+        {
+          "domain": "familycenter.meta.com",
+          "ip": "57.144.124.141"
+        },
+        {
+          "domain": "accounts.meta.com",
+          "ip": "57.144.124.141"
+        },
+        {
+          "domain": "ar.meta.com",
+          "ip": "57.144.124.141"
+        },
+        {
+          "domain": "horizon.meta.com",
+          "ip": "57.144.124.141"
+        },
+        {
+          "domain": "alpha.www.meta.com",
+          "ip": "57.144.42.136"
+        },
+        {
+          "domain": "beta.www.meta.com",
+          "ip": "57.144.42.136"
+        },
+        {
+          "domain": "help.meta.com",
+          "ip": "57.144.124.141"
+        },
+        {
+          "domain": "alpha.work.meta.com",
+          "ip": "57.144.42.136"
+        },
+        {
+          "domain": "bugbounty.meta.com",
+          "ip": "57.144.124.141"
+        }
+      ],
+      "cbom": [
+        {
+          "domain": "bigzipfiles.auth.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "gateway.horizon.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": false,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "gateway.work.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": false,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "gateway.spark.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": false,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "gateway.quest.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": false,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "auth.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "about.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "edge-chat.www.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "ai.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "gateway.developers.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": false,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "accountscenter.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "familycenter.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "accounts.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "horizon.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "ar.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "beta.www.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "help.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "alpha.work.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "alpha.www.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "bugbounty.meta.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "RSA",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        }
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-03-26T13:48:53.044918",
+    "domain": "ibm.com",
+    "payload": {
+      "summary": {
+        "total_assets": 1,
+        "https_enabled": 1,
+        "http_only": 0,
+        "quantum_vulnerable": 1,
+        "quantum_safe": 0,
+        "high_risk_assets": 0
+      },
+      "counts": {
+        "domains": 1,
+        "ssl": 1,
+        "ips": 1
+      },
+      "inventory": {
+        "domains": [
+          "ibm.com"
+        ],
+        "ssl_enabled": [
+          "ibm.com"
+        ],
+        "http_only": [],
+        "ip_addresses": [
+          "118.215.81.142"
+        ],
+        "ports": [
+          80,
+          443
+        ]
+      },
+      "risk": "Low",
+      "score": 50,
+      "rating": "Legacy",
+      "quantum_status": "High Risk",
+      "classical_security": "Strong",
+      "quantum_security": "High Risk",
+      "insights": [
+        "All assets use TLSv1.3 (strong classical security)",
+        "HTTPS is enabled across all assets",
+        "All assets are quantum vulnerable"
+      ],
+      "assets": [
+        {
+          "domain": "ibm.com",
+          "ip": "118.215.81.142"
+        }
+      ],
+      "cbom": [
+        {
+          "domain": "ibm.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "ECC",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        }
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-03-26T13:52:25.882665",
+    "domain": "cloudfare.com",
+    "payload": {
+      "summary": {
+        "total_assets": 20,
+        "https_enabled": 20,
+        "http_only": 0,
+        "quantum_vulnerable": 3,
+        "quantum_safe": 0,
+        "high_risk_assets": 17
+      },
+      "counts": {
+        "domains": 20,
+        "ssl": 20,
+        "ips": 2
+      },
+      "inventory": {
+        "domains": [
+          "ada.cloudfare.com",
+          "a.cloudfare.com",
+          "api.cloudfare.com",
+          "adam.ns.cloudfare.com",
+          "1atheana.ns.cloudfare.com",
+          "angelina.ns.cloudfare.com",
+          "anna.ns.cloudfare.com",
+          "alec.ns.cloudfare.com",
+          "adelaide.ns.cloudfare.com",
+          "ada.ns.cloudfare.com",
+          "aleena.ns.cloudfare.com",
+          "8.8.8.8.80.a.nel.cloudfare.com",
+          "alexis.ns.cloudfare.com",
+          "anita.ns.cloudfare.com",
+          "aida.ns.cloudfare.com",
+          "alice.ns.cloudfare.com",
+          "amir.ns.cloudfare.com",
+          "anastasia.ns.cloudfare.com",
+          "alan.ns.cloudfare.com",
+          "alex.ns.cloudfare.com"
+        ],
+        "ssl_enabled": [
+          "adam.ns.cloudfare.com",
+          "1atheana.ns.cloudfare.com",
+          "ada.cloudfare.com",
+          "a.cloudfare.com",
+          "api.cloudfare.com",
+          "angelina.ns.cloudfare.com",
+          "anna.ns.cloudfare.com",
+          "adelaide.ns.cloudfare.com",
+          "alec.ns.cloudfare.com",
+          "ada.ns.cloudfare.com",
+          "aleena.ns.cloudfare.com",
+          "8.8.8.8.80.a.nel.cloudfare.com",
+          "alexis.ns.cloudfare.com",
+          "anita.ns.cloudfare.com",
+          "aida.ns.cloudfare.com",
+          "alice.ns.cloudfare.com",
+          "alan.ns.cloudfare.com",
+          "anastasia.ns.cloudfare.com",
+          "alex.ns.cloudfare.com",
+          "amir.ns.cloudfare.com"
+        ],
+        "http_only": [],
+        "ip_addresses": [
+          "104.16.132.229",
+          "104.16.133.229"
+        ],
+        "ports": [
+          80,
+          443
+        ]
+      },
+      "risk": "High",
+      "score": 7,
+      "rating": "Critical",
+      "quantum_status": "Vulnerable",
+      "classical_security": "Moderate",
+      "quantum_security": "Vulnerable",
+      "insights": [
+        "All assets meet TLS 1.2+ requirements",
+        "HTTPS is enabled across all assets",
+        "Some assets remain quantum vulnerable"
+      ],
+      "assets": [
+        {
+          "domain": "ada.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "a.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "api.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "adam.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "1atheana.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "angelina.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "anna.ns.cloudfare.com",
+          "ip": "104.16.133.229"
+        },
+        {
+          "domain": "alec.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "adelaide.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "ada.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "aleena.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "8.8.8.8.80.a.nel.cloudfare.com",
+          "ip": "104.16.133.229"
+        },
+        {
+          "domain": "alexis.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "anita.ns.cloudfare.com",
+          "ip": "104.16.133.229"
+        },
+        {
+          "domain": "aida.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "alice.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "amir.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "anastasia.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "alan.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        },
+        {
+          "domain": "alex.ns.cloudfare.com",
+          "ip": "104.16.132.229"
+        }
+      ],
+      "cbom": [
+        {
+          "domain": "adam.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "1atheana.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "ada.cloudfare.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "ECC",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "a.cloudfare.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "ECC",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "api.cloudfare.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "ECC",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        },
+        {
+          "domain": "angelina.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "anna.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "adelaide.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "alec.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "ada.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "aleena.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "8.8.8.8.80.a.nel.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "alexis.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "anita.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "aida.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "alice.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "alan.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "anastasia.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "alex.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        },
+        {
+          "domain": "amir.ns.cloudfare.com",
+          "tls_version": "Unknown",
+          "cipher": "Unknown",
+          "algorithm_type": "UNKNOWN",
+          "key_strength": "MODERATE",
+          "quantum_vulnerable": null,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "High"
+        }
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-03-26T13:54:11.667934",
+    "domain": "https://pq.cloudflareresearch.com/",
+    "payload": {
+      "summary": {
+        "total_assets": 1,
+        "https_enabled": 1,
+        "http_only": 0,
+        "quantum_vulnerable": 1,
+        "quantum_safe": 0,
+        "high_risk_assets": 0
+      },
+      "counts": {
+        "domains": 1,
+        "ssl": 1,
+        "ips": 1
+      },
+      "inventory": {
+        "domains": [
+          "pq.cloudflareresearch.com"
+        ],
+        "ssl_enabled": [
+          "pq.cloudflareresearch.com"
+        ],
+        "http_only": [],
+        "ip_addresses": [
+          "104.18.30.220"
+        ],
+        "ports": [
+          80,
+          443
+        ]
+      },
+      "risk": "Low",
+      "score": 50,
+      "rating": "Legacy",
+      "quantum_status": "High Risk",
+      "classical_security": "Strong",
+      "quantum_security": "High Risk",
+      "insights": [
+        "All assets use TLSv1.3 (strong classical security)",
+        "HTTPS is enabled across all assets",
+        "All assets are quantum vulnerable"
+      ],
+      "assets": [
+        {
+          "domain": "pq.cloudflareresearch.com",
+          "ip": "104.18.30.220"
+        }
+      ],
+      "cbom": [
+        {
+          "domain": "pq.cloudflareresearch.com",
+          "tls_version": "TLSv1.3",
+          "cipher": "TLS_CHACHA20_POLY1305_SHA256",
+          "algorithm_type": "ECC",
+          "key_strength": "STRONG",
+          "quantum_vulnerable": true,
+          "ports": {
+            "80": true,
+            "443": true
+          },
+          "risk_level": "Low"
+        }
+      ]
+    }
   }
 ]

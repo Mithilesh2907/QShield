@@ -1,39 +1,90 @@
-import React from 'react';
-
 export default function Dashboard({ scanData, isLoading, error }) {
-  if (isLoading) return <div className="p-8 text-center text-gray-400">Scanning domain...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
-  if (!scanData) return <div className="p-8 text-center text-gray-500">Enter a domain to begin scanning.</div>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <span className="material-symbols-outlined animate-spin text-4xl text-secondary mb-4">autorenew</span>
+        <h3 className="font-bold text-lg text-on-surface">Scanning Infrastructure...</h3>
+        <p className="text-sm text-on-surface-variant mt-2">Running PQC Risk Assessment and CBOM Generation</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-error-container text-on-error-container p-4 flex items-center gap-3 rounded-lg shadow-sm border border-error/20">
+        <span className="material-symbols-outlined text-error">error</span>
+        <div className="flex-1">
+            <h4 className="font-bold text-sm">Scan Failed</h4>
+            <p className="text-xs">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!scanData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] opacity-50">
+        <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4" style={{ fontVariationSettings: "'wght' 200" }}>manage_search</span>
+        <h3 className="font-bold text-lg text-on-surface">No Active Scan Data</h3>
+        <p className="text-sm text-on-surface-variant mt-2">Enter a domain in the top search bar to initiate a scan.</p>
+      </div>
+    );
+  }
 
   const { score, risk, quantum_status, summary } = scanData;
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6 text-white">Dashboard Overview</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gray-800 p-6 rounded-lg shadow border border-gray-700 hover:border-gray-500 transition-colors">
-          <h2 className="text-gray-400 text-sm uppercase tracking-wider">Security Score</h2>
-          <div className="mt-2 text-4xl font-extrabold text-blue-400">{score || 0}</div>
+    <div className="grid grid-cols-12 gap-8 auto-rows-min">
+      <section className="col-span-12 glass-card rounded-lg p-8 shadow-2xl shadow-[#1d1b19]/5">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h3 className="font-headline text-2xl font-extrabold text-on-surface tracking-tight">Dashboard Overview</h3>
+            <p className="text-on-surface-variant text-sm mt-1">High-level security and compliance metrics.</p>
+          </div>
+          <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Executive</span>
         </div>
-        <div className="bg-gray-800 p-6 rounded-lg shadow border border-gray-700 hover:border-gray-500 transition-colors">
-          <h2 className="text-gray-400 text-sm uppercase tracking-wider">Risk Level</h2>
-          <div className={`mt-2 text-3xl font-bold ${
-            risk === 'Low' ? 'text-green-500' : 
-            risk === 'Medium' ? 'text-yellow-500' : 
-            'text-red-500'
-          }`}>
-            {risk || 'Unknown'}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/60">Security Score</span>
+            <div className="text-4xl font-black text-primary">{score || 0}</div>
+            <div className="flex items-center gap-1 text-xs text-on-surface-variant font-bold mt-2">
+              <span className="material-symbols-outlined text-sm">analytics</span> Overall rating
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/60">Risk Level</span>
+            <div className={`text-3xl font-black ${
+              risk === 'Low' ? 'text-green-600' : 
+              risk === 'Medium' ? 'text-secondary' : 
+              'text-error'
+            }`}>
+              {risk || 'Unknown'}
+            </div>
+            <div className={`flex items-center gap-1 text-xs font-bold mt-2 ${
+              risk === 'Low' ? 'text-green-600' : 
+              risk === 'Medium' ? 'text-secondary' : 
+              'text-error'
+            }`}>
+              <span className="material-symbols-outlined text-sm">{risk === 'Low' ? 'verified' : 'warning'}</span> Assessment
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/60">Quantum Status</span>
+            <div className="text-2xl font-black text-on-surface pt-1 pb-1">{quantum_status || 'Unknown'}</div>
+            <div className="flex items-center gap-1 text-xs text-secondary font-bold mt-2">
+              <span className="material-symbols-outlined text-sm">memory</span> PQC Check
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/60">Total Assets</span>
+            <div className="text-4xl font-black text-on-surface">{summary?.total_assets || 0}</div>
+            <div className="flex items-center gap-1 text-xs text-on-surface-variant font-bold mt-2">
+              <span className="material-symbols-outlined text-sm">hub</span> Discovered endpoints
+            </div>
           </div>
         </div>
-        <div className="bg-gray-800 p-6 rounded-lg shadow border border-gray-700 hover:border-gray-500 transition-colors">
-          <h2 className="text-gray-400 text-sm uppercase tracking-wider">Quantum Status</h2>
-          <div className="mt-2 text-xl font-bold text-orange-400">{quantum_status || 'Unknown'}</div>
-        </div>
-        <div className="bg-gray-800 p-6 rounded-lg shadow border border-gray-700 hover:border-gray-500 transition-colors">
-          <h2 className="text-gray-400 text-sm uppercase tracking-wider">Total Assets</h2>
-          <div className="mt-2 text-4xl font-extrabold text-purple-400">{summary?.total_assets || 0}</div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
