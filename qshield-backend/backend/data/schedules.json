@@ -36,5 +36,24 @@
     "download_link": false,
     "status": "scheduled",
     "created_at": "2026-03-30T19:20:43.617412+05:30"
+  },
+  {
+    "id": "8256ef12-affc-4115-87b0-5ca74428ba43",
+    "report_type": "discovery",
+    "frequency": "Weekly",
+    "assets": "All Assets",
+    "sections": {
+      "discovery": true,
+      "inventory": true,
+      "cbom": true,
+      "pqc": true,
+      "cyberRating": true
+    },
+    "run_at": "2026-03-30T19:38:00+05:30",
+    "email": "mithilesh70707@gmail.com",
+    "save_path": null,
+    "download_link": false,
+    "status": "scheduled",
+    "created_at": "2026-03-30T19:36:55.032228+05:30"
   }
 ]
