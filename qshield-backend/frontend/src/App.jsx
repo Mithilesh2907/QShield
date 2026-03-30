@@ -66,7 +66,7 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
           
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Layout onScan={handleScan} />}>
+            <Route path="/" element={<Layout onScan={handleScan} scanData={scanData} />}>
               <Route index element={<Dashboard scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="assets" element={<Assets scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="asset-inventory" element={<AssetInventory scanData={scanData} isLoading={isLoading} error={error} />} />

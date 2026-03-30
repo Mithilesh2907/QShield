@@ -135,21 +135,12 @@ def discover_assets(domain: str):
     subdomains = subdomains[:MAX_SUBDOMAINS]
     print("Subfinder count:", len(subdomains))
     print("Subdomains limited to:", len(subdomains))
-    if not subdomains:
-        fallback_subdomains = [
-            f"www.{domain}",
-            f"api.{domain}",
-            f"mail.{domain}",
-        ]
-        print("Using fallback subdomains")
-        subdomains.extend(fallback_subdomains)
-    print("Subfinder count:", len(subdomains))
     domain_clean = clean_domain(domain)
     subdomains = [clean_domain(d) for d in subdomains if clean_domain(d)]
     if domain_clean and domain_clean not in subdomains:
         subdomains.insert(0, domain_clean)
     if not subdomains:
-        logger.error("Subfinder returned no domains for %s", domain)
+        logger.info("No subdomains found for %s", domain)
         subdomains = [domain_clean] if domain_clean else []
     print("Subfinder returned:", len(subdomains))
     live_domains, httpx_success = _filter_live_domains(subdomains)

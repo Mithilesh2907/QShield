@@ -1,17 +1,18 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import Assistant from './Assistant';
 
-export default function Layout({ onScan }) {
+export default function Layout({ onScan, scanData }) {
   return (
     <>
       <Sidebar />
-  <main className="fixed top-0 right-0 left-64 bottom-0 flex flex-col overflow-y-auto bg-surface tech-pattern">
-    <TopBar onScan={onScan} />
-    <div className="mt-16 p-6 space-y-6 max-w-[1600px]">
-      <Outlet />
-    </div>
-    {/* <footer className="mt-auto p-4 border-t border-outline-variant/10 text-on-surface-variant/40 text-[10px] font-bold uppercase tracking-widest flex justify-between items-center">
+      <main className="fixed top-0 right-0 left-64 bottom-0 flex flex-col overflow-y-auto bg-surface tech-pattern">
+        <TopBar onScan={onScan} />
+        <div className="mt-16 p-6 space-y-6 max-w-[1600px]">
+          <Outlet />
+        </div>
+        {/* <footer className="mt-auto p-4 border-t border-outline-variant/10 text-on-surface-variant/40 text-[10px] font-bold uppercase tracking-widest flex justify-between items-center">
           <span>© 2024 Luminous Guardian Security Services</span>
           <div className="flex gap-4">
             <a className="hover:text-secondary transition-colors" href="#">Privacy</a>
@@ -19,6 +20,7 @@ export default function Layout({ onScan }) {
             <a className="hover:text-secondary transition-colors" href="#">Support</a>
           </div>
         </footer> */}
+        <Assistant scanData={scanData} />
       </main>
     </>
   );
