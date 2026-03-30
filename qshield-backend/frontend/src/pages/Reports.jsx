@@ -17,8 +17,8 @@ export default function Reports({ scanData, isLoading, error }) {
       <div className="bg-error-container text-on-error-container p-4 flex items-center gap-3 rounded-lg shadow-sm border border-error/20">
         <span className="material-symbols-outlined text-error">error</span>
         <div className="flex-1">
-            <h4 className="font-bold text-sm">Scan Failed</h4>
-            <p className="text-xs">{error}</p>
+          <h4 className="font-bold text-sm">Scan Failed</h4>
+          <p className="text-xs">{error}</p>
         </div>
       </div>
     );
@@ -179,7 +179,7 @@ export default function Reports({ scanData, isLoading, error }) {
               </div>
             ))
           ) : (
-             <p className="text-sm text-on-surface-variant italic">No insights generated for this scan yet.</p>
+            <p className="text-sm text-on-surface-variant italic">No insights generated for this scan yet.</p>
           )}
         </div>
       </section>
