@@ -19,6 +19,8 @@ export default function App() {
   const [scanData, setScanData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [nucleiResults, setNucleiResults] = useState([]);
+  const nucleiStorageKey = 'nucleiResults';
 
   useEffect(() => {
     try {
@@ -30,6 +32,28 @@ export default function App() {
       console.error('Failed to load scanData from storage:', err);
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(nucleiStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setNucleiResults(parsed);
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(nucleiStorageKey, JSON.stringify(nucleiResults));
+    } catch {
+      // ignore storage errors
+    }
+  }, [nucleiResults]);
 
   const handleScan = async (domain) => {
     setIsLoading(true);
@@ -66,13 +90,13 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
 
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Layout onScan={handleScan} scanData={scanData} />}>
+            <Route path="/" element={<Layout onScan={handleScan} scanData={scanData} nucleiResults={nucleiResults} />}>
               <Route index element={<Dashboard scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="assets" element={<Assets scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="asset-inventory" element={<AssetInventory scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="monitoring" element={<Monitoring scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="security" element={<Security scanData={scanData} isLoading={isLoading} error={error} />} />
-              <Route path="vulnerability-scan" element={<VulnerabilityScan scanData={scanData} isLoading={isLoading} error={error} />} />
+              <Route path="vulnerability-scan" element={<VulnerabilityScan scanData={scanData} isLoading={isLoading} error={error} setNucleiResults={setNucleiResults} />} />
               <Route path="analytics" element={<Analytics scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="reports" element={<Reports scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="settings" element={<Settings />} />

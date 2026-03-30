@@ -65,16 +65,17 @@ class NucleiRequest(BaseModel):
     mode: str | None = "fast"
 
 
-NUCLEI_STATUS = {
+current_scan = {
     "running": False,
-    "requests": 0,
-    "templates": 0,
-    "stats": None,
-    "last_lines": [],
-    "last_update": None,
+    "process": None,
+    "results": [],
+    "stats": {
+        "requests": 0,
+        "templates": 0,
+        "last_lines": [],
+        "last_update": None,
+    },
 }
-current_scan_process = None
-NUCLEI_FINDINGS = []
 
 
 def map_certificate_ui(status: str) -> dict:
@@ -586,9 +587,7 @@ def _parse_nuclei_output(output: str) -> list[dict]:
 
 @app.post("/run-nuclei")
 def run_nuclei_scan(request: NucleiRequest):
-    global current_scan_process
-    global NUCLEI_FINDINGS
-    if current_scan_process and current_scan_process.poll() is None:
+    if current_scan["running"] and current_scan["process"] and current_scan["process"].poll() is None:
         return {"success": False, "error": "Nuclei scan already running", "findings": [], "summary": {}, "total": 0}
 
     raw_domains = [domain.strip() for domain in (request.domains or []) if domain and domain.strip()]
@@ -617,15 +616,14 @@ def run_nuclei_scan(request: NucleiRequest):
         if os.path.getsize(domains_path) == 0:
             return {"success": False, "error": "Domains file is empty", "findings": [], "summary": {}, "total": 0}
 
-        NUCLEI_STATUS.update({
-            "running": True,
+        current_scan["running"] = True
+        current_scan["results"] = []
+        current_scan["stats"] = {
             "requests": 0,
             "templates": 0,
-            "stats": None,
             "last_lines": [],
             "last_update": None,
-        })
-        NUCLEI_FINDINGS = []
+        }
 
         try:
             base_cmd = [
@@ -659,12 +657,12 @@ def run_nuclei_scan(request: NucleiRequest):
                 stderr=subprocess.STDOUT,
                 text=True,
             )
-            current_scan_process = process
+            current_scan["process"] = process
         except FileNotFoundError:
-            NUCLEI_STATUS["running"] = False
+            current_scan["running"] = False
             return {"success": False, "error": "Nuclei binary not found on server PATH", "findings": [], "summary": {}, "total": 0}
         except Exception as exc:
-            NUCLEI_STATUS["running"] = False
+            current_scan["running"] = False
             return {"success": False, "error": f"Failed to run nuclei: {exc}", "findings": [], "summary": {}, "total": 0}
 
         if process.stdout:
@@ -673,7 +671,7 @@ def run_nuclei_scan(request: NucleiRequest):
                 if not line:
                     continue
                 print(line)
-                NUCLEI_STATUS["last_update"] = line
+                current_scan["stats"]["last_update"] = line
                 parsed_stats = None
                 if line.startswith("{") and line.endswith("}"):
                     try:
@@ -684,7 +682,7 @@ def run_nuclei_scan(request: NucleiRequest):
                         parsed_stats.get("template-id") or parsed_stats.get("template") or parsed_stats.get("matched-at")
                     ):
                         info = parsed_stats.get("info") or {}
-                        NUCLEI_FINDINGS.append({
+                        current_scan["results"].append({
                             "name": info.get("name") or parsed_stats.get("name") or "Unknown",
                             "severity": (info.get("severity") or parsed_stats.get("severity") or "unknown").lower(),
                             "template": parsed_stats.get("template-id") or parsed_stats.get("template") or "unknown",
@@ -696,67 +694,73 @@ def run_nuclei_scan(request: NucleiRequest):
                     or "total" in parsed_stats
                     or "rps" in parsed_stats
                 ):
-                    NUCLEI_STATUS["stats"] = parsed_stats
+                    current_scan["stats"]["stats"] = parsed_stats
                     if "requests" in parsed_stats:
-                        NUCLEI_STATUS["requests"] = int(parsed_stats.get("requests") or 0)
+                        current_scan["stats"]["requests"] = int(parsed_stats.get("requests") or 0)
                     if "templates" in parsed_stats:
-                        NUCLEI_STATUS["templates"] = int(parsed_stats.get("templates") or 0)
+                        current_scan["stats"]["templates"] = int(parsed_stats.get("templates") or 0)
                 else:
-                    NUCLEI_STATUS["last_lines"] = (NUCLEI_STATUS["last_lines"] + [line])[-12:]
+                    current_scan["stats"]["last_lines"] = (current_scan["stats"]["last_lines"] + [line])[-12:]
                     req_match = re.search(r"requests\s*:\s*(\d+)", line, re.IGNORECASE)
                     tmpl_match = re.search(r"templates\s*:\s*(\d+)", line, re.IGNORECASE)
                     if req_match:
-                        NUCLEI_STATUS["requests"] = int(req_match.group(1))
+                        current_scan["stats"]["requests"] = int(req_match.group(1))
                     if tmpl_match:
-                        NUCLEI_STATUS["templates"] = int(tmpl_match.group(1))
+                        current_scan["stats"]["templates"] = int(tmpl_match.group(1))
 
         process.wait()
 
-    NUCLEI_STATUS["running"] = False
-    current_scan_process = None
+    current_scan["running"] = False
+    current_scan["process"] = None
 
     if process.returncode != 0:
         print("Nuclei failed")
         return {
             "success": False,
             "error": f"Nuclei exited with code {process.returncode}",
-            "findings": NUCLEI_FINDINGS,
+            "findings": current_scan["results"],
             "summary": {},
-            "total": len(NUCLEI_FINDINGS),
+            "total": len(current_scan["results"]),
         }
 
     summary = {}
-    for entry in NUCLEI_FINDINGS:
+    for entry in current_scan["results"]:
         severity = entry.get("severity", "unknown") or "unknown"
         summary[severity] = summary.get(severity, 0) + 1
 
-    return {"success": True, "findings": NUCLEI_FINDINGS, "summary": summary, "total": len(NUCLEI_FINDINGS)}
+    return {"success": True, "findings": current_scan["results"], "summary": summary, "total": len(current_scan["results"])}
 
 
 @app.post("/stop-nuclei")
 def stop_nuclei_scan():
-    global current_scan_process
-    process = current_scan_process
+    process = current_scan["process"]
     if not process or process.poll() is not None:
-        NUCLEI_STATUS["running"] = False
-        current_scan_process = None
+        current_scan["running"] = False
+        current_scan["process"] = None
         return {"success": False, "message": "No scan running"}
     try:
         process.terminate()
-        NUCLEI_STATUS["running"] = False
+        current_scan["running"] = False
         return {"success": True, "message": "Scan stopped"}
     finally:
-        current_scan_process = None
+        current_scan["process"] = None
 
 
 @app.get("/nuclei-status")
 def nuclei_status():
-    return NUCLEI_STATUS
+    return {
+        "running": current_scan["running"],
+        "requests": current_scan["stats"].get("requests", 0),
+        "templates": current_scan["stats"].get("templates", 0),
+        "stats": current_scan["stats"].get("stats"),
+        "last_lines": current_scan["stats"].get("last_lines", []),
+        "last_update": current_scan["stats"].get("last_update"),
+    }
 
 
 @app.get("/nuclei-results")
 def nuclei_results():
-    return {"findings": NUCLEI_FINDINGS, "total": len(NUCLEI_FINDINGS)}
+    return {"findings": current_scan["results"], "total": len(current_scan["results"])}
 
 
 @app.get("/{full_path:path}")

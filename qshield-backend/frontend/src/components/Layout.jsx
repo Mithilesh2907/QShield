@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import Assistant from './Assistant';
 
-export default function Layout({ onScan, scanData }) {
+export default function Layout({ onScan, scanData, nucleiResults }) {
   return (
     <>
       <Sidebar />
@@ -20,7 +20,7 @@ export default function Layout({ onScan, scanData }) {
             <a className="hover:text-secondary transition-colors" href="#">Support</a>
           </div>
         </footer> */}
-        <Assistant scanData={scanData} />
+        <Assistant scanData={scanData} nucleiResults={nucleiResults} />
       </main>
     </>
   );

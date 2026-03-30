@@ -29,14 +29,14 @@ function isExpiringSoon(dateStr) {
   return diffDays <= 30;
 }
 
-export default function Assistant({ scanData }) {
+export default function Assistant({ scanData, nucleiResults = [] }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const scrollRef = useRef(null);
 
   const summary = scanData?.summary || {};
   const assets = scanData?.assets || [];
-  const vulnerabilities = scanData?.vulnerabilities || [];
+  const vulnerabilities = Array.isArray(nucleiResults) ? nucleiResults : [];
 
   const assetBreakdown = useMemo(() => {
     const totalDomains = assets.map((asset) => asset.domain).filter(Boolean);
@@ -162,10 +162,17 @@ function buildResponse(type, { summary, assets, vulnerabilities, assetBreakdown 
   }
 
   if (type === 'vulns') {
-    if (!vulnerabilities || vulnerabilities.length === 0) {
+    const filtered = vulnerabilities.filter((entry) => entry && entry.severity !== 'info');
+    if (!filtered || filtered.length === 0) {
       return 'No vulnerabilities detected.';
     }
-    return `${vulnerabilities.length} vulnerabilities detected.`;
+    const lines = filtered.map((entry) => {
+      const name = entry.name || 'Unknown';
+      const severity = entry.severity || 'unknown';
+      const matched = entry.matched || 'n/a';
+      return `- ${name} | ${severity} | ${matched}`;
+    });
+    return `${filtered.length} vulnerabilities detected.\n${lines.join('\n')}`;
   }
 
   if (type === 'recs') {
