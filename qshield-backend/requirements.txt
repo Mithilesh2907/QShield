@@ -9,3 +9,4 @@ python-jose[cryptography]
 PyJWT==2.12.1
 bcrypt==5.0.0
 python-dotenv
+APScheduler==3.10.4

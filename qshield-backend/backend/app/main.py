@@ -18,9 +18,17 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from email.message import EmailMessage
 import smtplib
+import uuid
+from contextlib import asynccontextmanager
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.date import DateTrigger
 from dotenv import load_dotenv
 
 load_dotenv()  # Load .env file so SMTP credentials are available
+
+scheduler = BackgroundScheduler(timezone="Asia/Kolkata")
 
 from backend.app.db import engine, Base
 from backend.app.routers import auth
@@ -33,13 +41,24 @@ from backend.app.services.real_crypto_scan import scan_tls
 from backend.app.services.storage import save_scan, get_latest_scans
 from backend.app.services.cert_analysis import get_certificate_expiry
 from backend.app.services.security_headers import check_security_headers
+from backend.app.services.schedule_store import add_schedule, load_schedules, update_schedule_status
 
 # Initialize DB tables on startup
 Base.metadata.create_all(bind=engine)
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app_instance):
+    scheduler.start()
+    logger.info("APScheduler started")
+    yield
+    scheduler.shutdown(wait=False)
+    logger.info("APScheduler stopped")
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -58,6 +77,138 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 class ScanRequest(BaseModel):
     domain: str
+
+
+# ---------------------------------------------------------------------------
+# Scheduled email job
+# ---------------------------------------------------------------------------
+
+def _scheduled_email_job(schedule_id: str, report_type: str, email_to: str, sections: dict):
+    """Called by APScheduler at the scheduled time to generate + email a report."""
+    smtp_server = os.environ.get("SMTP_SERVER")
+    smtp_port   = int(os.environ.get("SMTP_PORT", 587))
+    smtp_user   = os.environ.get("SMTP_USER")
+    smtp_pass   = os.environ.get("SMTP_PASS")
+
+    update_schedule_status(schedule_id, "running")
+
+    if not smtp_server or not smtp_user or not smtp_pass:
+        logger.error("SMTP not configured — cannot send scheduled report %s", schedule_id)
+        update_schedule_status(schedule_id, "failed:smtp_not_configured")
+        return
+
+    label_map = {
+        "exec": "Executive Summary Report",
+        "discovery": "Assets Discovery Report",
+        "inventory": "Assets Inventory",
+        "cbom": "Cryptographic Bill of Materials (CBOM)",
+        "pqc": "Posture of PQC",
+        "cyber": "Cyber Risk Rating",
+    }
+    report_label = label_map.get(report_type, report_type.upper())
+    timestamp    = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M IST")
+    filename     = f"QShield_{report_type.upper()}_Scheduled_{datetime.now().strftime('%Y%m%d_%H%M')}.txt"
+
+    lines = [
+        "QShield Scheduled Report",
+        f"Report Type : {report_label}",
+        f"Generated   : {timestamp}",
+        f"Sections    : {', '.join(k for k, v in (sections or {}).items() if v)}",
+        "",
+        "This is an automated scheduled security report from your QShield platform.",
+        "Please log in to the dashboard to view detailed charts and full analysis.",
+    ]
+    body_text = "\n".join(lines)
+
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = f"QShield Scheduled Report: {report_label}"
+        msg["From"]    = str(smtp_user)
+        msg["To"]      = email_to
+        msg.set_content(body_text)
+        msg.add_attachment(
+            body_text.encode("utf-8"),
+            maintype="text",
+            subtype="plain",
+            filename=filename,
+        )
+        with smtplib.SMTP(str(smtp_server), smtp_port) as server:
+            server.starttls()
+            server.login(str(smtp_user), str(smtp_pass))
+            server.send_message(msg)
+        logger.info("Scheduled report email sent to %s (job %s)", email_to, schedule_id)
+        update_schedule_status(schedule_id, "sent")
+    except Exception as exc:
+        logger.error("Failed to send scheduled report %s: %s", schedule_id, exc)
+        update_schedule_status(schedule_id, f"failed:{exc}")
+
+
+# ---------------------------------------------------------------------------
+# Schedule endpoints
+# ---------------------------------------------------------------------------
+
+class ScheduleRequest(BaseModel):
+    report_type: str
+    frequency: str
+    assets: str
+    sections: dict
+    run_at: str          # ISO-8601 datetime string, e.g. "2026-03-30T21:30:00"
+    email: str
+    save_path: str | None = None
+    download_link: bool = False
+
+
+@app.post("/api/reports/schedule")
+def create_schedule(req: ScheduleRequest):
+    """Save a schedule and register an APScheduler one-shot job."""
+    try:
+        # Parse run_at in IST timezone
+        naive_dt = datetime.fromisoformat(req.run_at)
+        ist = ZoneInfo("Asia/Kolkata")
+        run_at_dt = naive_dt.replace(tzinfo=ist)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid run_at datetime: {exc}")
+
+    now_ist = datetime.now(ZoneInfo("Asia/Kolkata"))
+    if run_at_dt <= now_ist:
+        raise HTTPException(status_code=400, detail="Scheduled time must be in the future.")
+
+    schedule_id = str(uuid.uuid4())
+    entry = {
+        "id": schedule_id,
+        "report_type": req.report_type,
+        "frequency": req.frequency,
+        "assets": req.assets,
+        "sections": req.sections,
+        "run_at": run_at_dt.isoformat(),
+        "email": req.email,
+        "save_path": req.save_path,
+        "download_link": req.download_link,
+        "status": "scheduled",
+        "created_at": now_ist.isoformat(),
+    }
+    add_schedule(entry)
+
+    scheduler.add_job(
+        _scheduled_email_job,
+        trigger=DateTrigger(run_date=run_at_dt),
+        args=[schedule_id, req.report_type, req.email, req.sections],
+        id=schedule_id,
+        replace_existing=True,
+    )
+    logger.info("Scheduled report job %s for %s at %s", schedule_id, req.email, run_at_dt)
+
+    return {
+        "status": "scheduled",
+        "id": schedule_id,
+        "run_at": run_at_dt.isoformat(),
+        "email": req.email,
+    }
+
+
+@app.get("/api/reports/schedules")
+def list_schedules():
+    return {"schedules": load_schedules()}
 
 
 class NucleiRequest(BaseModel):
