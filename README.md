@@ -1,4 +1,4 @@
-# QShield 🔐
+# Requiem 
 
 Quantum-Proof Cryptography Scanner
 
@@ -7,14 +7,15 @@ Quantum-Proof Cryptography Scanner
 - Live Host Detection (httpx)
 - Port Scanning (Nmap)
 - TLS Analysis (SSLyze)
+- Vulnerability scanning (High,Critical) Nuclei
 - CBOM Generation
 - PQC Risk Assessment
 - Cyber Rating Engine
 
 ## Tech Stack
-- FastAPI (Backend)
-- React / HTML (Frontend)
-- PostgreSQL (planned)
+- FastAPI / Python (Backend)
+- React / HTML / CSS (Frontend)
+- SQL Alchemy DB
 
 ## Run Locally
 - Frontend
