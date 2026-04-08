@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import OnDemandReporting from '../components/OnDemandReporting';
 import ScheduleReporting from '../components/ScheduleReporting';
 
 export default function Reports({ scanData, isLoading, error }) {
+  const [activeReportView, setActiveReportView] = useState('ondemand');
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -41,10 +44,77 @@ export default function Reports({ scanData, isLoading, error }) {
 
   return (
     <div className="grid grid-cols-12 gap-8 auto-rows-min">
-      <OnDemandReporting scanData={scanData} />
+      {/* Cards Section */}
+      <section className="col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Executive Reporting Card */}
+        <div className="glass-card rounded-2xl p-6 flex flex-col justify-between border border-transparent shadow-lg opacity-80 cursor-default transition-all">
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-surface-variant flex items-center justify-center mb-5">
+              <span className="material-symbols-outlined text-on-surface-variant text-2xl">supervisor_account</span>
+            </div>
+            <h3 className="text-xl font-bold text-on-surface mb-2">Executives Reporting</h3>
+            <p className="text-sm text-on-surface-variant font-medium leading-relaxed">
+              Board-level risk summaries, Q-VaR models, and KPI dashboards for CISO/CTO.
+            </p>
+          </div>
+          <div className="mt-6 flex items-center text-on-surface-variant font-bold text-sm">
+            <span>Unavailable</span>
+            <span className="material-symbols-outlined text-sm ml-1">lock</span>
+          </div>
+        </div>
 
-      {/* Schedule Reporting Section */}
-      <ScheduleReporting />
+        {/* Scheduled Reporting Card */}
+        <div 
+          onClick={() => setActiveReportView('schedule')}
+          className={`glass-card rounded-2xl p-6 flex flex-col justify-between cursor-pointer border transition-all ${
+            activeReportView === 'schedule' 
+              ? 'border-[#e5a03e] ring-2 ring-[#e5a03e]/20 shadow-[#e5a03e]/10 shadow-xl' 
+              : 'border-transparent hover:border-outline-variant/30 shadow-lg hover:shadow-xl'
+          }`}
+        >
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-[#e5a03e]/10 flex items-center justify-center mb-5">
+              <span className="material-symbols-outlined text-[#e5a03e] text-2xl">calendar_month</span>
+            </div>
+            <h3 className="text-xl font-bold text-on-surface mb-2">Scheduled Reporting</h3>
+            <p className="text-sm text-on-surface-variant font-medium leading-relaxed">
+              Automate periodic report generation with email and storage delivery.
+            </p>
+          </div>
+          <div className={`mt-6 flex items-center font-bold text-sm ${activeReportView === 'schedule' ? 'text-[#e5a03e]' : 'text-[#e5a03e]/80'} hover:underline`}>
+            <span>{activeReportView === 'schedule' ? 'Currently viewing' : 'Get started'}</span>
+            <span className="material-symbols-outlined text-sm ml-1">chevron_right</span>
+          </div>
+        </div>
+
+        {/* On-Demand Reporting Card */}
+        <div 
+          onClick={() => setActiveReportView('ondemand')}
+          className={`glass-card rounded-2xl p-6 flex flex-col justify-between cursor-pointer border transition-all ${
+            activeReportView === 'ondemand' 
+              ? 'border-primary ring-2 ring-primary/20 shadow-primary/10 shadow-xl' 
+              : 'border-transparent hover:border-outline-variant/30 shadow-lg hover:shadow-xl'
+          }`}
+        >
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+              <span className="material-symbols-outlined text-primary text-2xl">find_in_page</span>
+            </div>
+            <h3 className="text-xl font-bold text-on-surface mb-2">On-Demand Reporting</h3>
+            <p className="text-sm text-on-surface-variant font-medium leading-relaxed">
+              Generate targeted reports instantly for specific assets, incidents, or audits.
+            </p>
+          </div>
+          <div className={`mt-6 flex items-center font-bold text-sm ${activeReportView === 'ondemand' ? 'text-primary' : 'text-primary/80'} hover:underline`}>
+            <span>{activeReportView === 'ondemand' ? 'Currently viewing' : 'Get started'}</span>
+            <span className="material-symbols-outlined text-sm ml-1">chevron_right</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Selected Reporting Component */}
+      {activeReportView === 'ondemand' && <OnDemandReporting scanData={scanData} />}
+      {activeReportView === 'schedule' && <ScheduleReporting />}
 
       {/* Overview Stats */}
       <section className="col-span-12 lg:col-span-8 glass-card rounded-lg p-8 shadow-2xl shadow-[#1d1b19]/5 flex flex-col justify-between min-h-[280px]">
