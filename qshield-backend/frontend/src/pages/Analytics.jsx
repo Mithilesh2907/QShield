@@ -1,5 +1,5 @@
 import { Chart as ChartJS, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
-import { Pie, Bar } from 'react-chartjs-2';
+import { Doughnut, Bar } from 'react-chartjs-2';
 import { useState } from 'react';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
@@ -68,9 +68,9 @@ export default function Analytics({ scanData, isLoading, error }) {
     }
   };
 
-  const pieOptions = { 
-    responsive: true, maintainAspectRatio: false, 
-    plugins: { legend: { position: 'right', labels: { color: '#f8fafc', font: { size: 10 }, boxWidth: 12 } } } 
+  const doughnutOptions = { 
+    responsive: true, maintainAspectRatio: false, cutout: '65%',
+    plugins: { legend: { display: false } } 
   };
 
   const barData = {
@@ -78,140 +78,172 @@ export default function Analytics({ scanData, isLoading, error }) {
     datasets: [{
       label: 'Assets',
       data: [elite, critical, standard],
-      backgroundColor: ['#4ade80', '#ef4444', '#a855f7'],
+      backgroundColor: ['#4ade80', '#ef4444', '#eab308'],
       borderWidth: 0
     }]
   };
 
-  const pieData = {
+  const doughnutData = {
     labels: ['Elite-PQC Ready', 'Standard', 'Legacy', 'Critical'],
     datasets: [{
-      data: [elitePct, stdPct, legacyPct, criticalPct],
-      backgroundColor: ['#4ade80', '#eab308', '#f97316', '#ef4444'],
+      data: [elite, standard, legacy, critical],
+      backgroundColor: ['#4ade80', '#eab308', '#f97316', '#7f1d1d'],
       borderWidth: 0
     }]
   };
 
-  const activeApp = selectedAsset || assets[0];
+  const activeApp = selectedAsset || (assets.length > 0 ? assets[0] : null);
 
   return (
-    <div className="grid grid-cols-12 gap-4 auto-rows-min">
+    <div className="grid grid-cols-12 gap-5 auto-rows-min">
       {/* Top Banner */}
-      <div className="col-span-12 bg-gradient-to-r from-[#81001d] to-surface-container rounded-lg p-4 shadow-xl border border-outline-variant/30 flex flex-wrap justify-between items-center bg-[#81001d]/80">
-        <h2 className="text-xl md:text-2xl font-bold text-white tracking-widest uppercase">PQC Compliance Dashboard</h2>
-        <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm font-bold text-white/90">
-          <span className="text-[#4ade80]">Elite-PQC Ready: {elitePct}%</span> <span className="text-white/30 hidden md:inline">|</span>
-          <span className="text-[#eab308]">Standard: {stdPct}%</span> <span className="text-white/30 hidden md:inline">|</span> 
-          <span className="text-[#f97316]">Legacy: {legacyPct}%</span> <span className="text-white/30 hidden md:inline">|</span>
-          <span className="text-white">Critical Apps: <span className="text-[#ef4444]">{critical}</span></span>
+      <div className="col-span-12 bg-gradient-to-r from-[#81001d] to-[#a51c30]/90 rounded-2xl p-5 shadow-xl border border-outline-variant/30 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <h2 className="text-xl md:text-2xl font-bold text-white tracking-widest uppercase">PQC Compliance Dashboard</h2>
+          <p className="text-xs md:text-sm text-white/70 mt-1">Post-Quantum Cryptography readiness and cryptographic transition modeling.</p>
         </div>
-      </div>
-
-      {/* Charts Row */}
-      <div className="col-span-12 lg:col-span-5 glass-card p-4 rounded-xl border border-outline-variant/30 shadow-2xl shadow-[#1d1b19]/5">
-        <h3 className="text-center font-bold text-sm mb-4 bg-surface-container-low p-2 rounded text-on-surface">Assets by Classification Grade</h3>
-        <div className="h-48"><Bar data={barData} options={barOptions} /></div>
-      </div>
-
-      <div className="col-span-12 lg:col-span-4 glass-card p-4 rounded-xl border border-outline-variant/30 shadow-2xl shadow-[#1d1b19]/5">
-        <h3 className="text-center font-bold text-sm mb-4 bg-surface-container-low p-2 rounded text-on-surface">Application Status</h3>
-        <div className="h-48"><Pie data={pieData} options={pieOptions} /></div>
-      </div>
-
-      <div className="col-span-12 lg:col-span-3 glass-card p-4 rounded-xl border border-outline-variant/30 shadow-2xl shadow-[#1d1b19]/5 flex flex-col">
-         <h3 className="text-center font-bold text-sm mb-4 bg-surface-container-low p-2 rounded text-on-surface">Risk Overview</h3>
-         <div className="flex flex-col sm:flex-row gap-4 flex-1 items-center justify-center">
-           {/* HeatMap Grid */}
-           <div className="grid grid-cols-3 gap-1 w-24 h-24">
-             {[...Array(9)].map((_, i) => (
-                <div key={i} className={`rounded-sm ${i < 3 ? 'bg-[#ef4444]' : i < 6 ? 'bg-[#eab308]' : 'bg-[#4ade80]'}`}></div>
-             ))}
-           </div>
-           {/* Legend */}
-           <div className="flex flex-col justify-center gap-3 text-[10px] text-on-surface-variant font-bold uppercase">
-              <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#ef4444] rounded-sm"></span> High Risk</div>
-              <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#eab308] rounded-sm"></span> Medium Risk</div>
-              <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#4ade80] rounded-sm"></span> Safe/No risk</div>
-           </div>
-         </div>
-      </div>
-
-      {/* Bottom Row */}
-      <div className="col-span-12 lg:col-span-8 grid grid-cols-1 gap-4">
-        <div className="glass-card p-4 rounded-xl border border-outline-variant/30 shadow-2xl shadow-[#1d1b19]/5 flex flex-col">
-          <table className="min-w-full text-left bg-surface-container-low rounded-lg overflow-hidden flex-1">
-            <thead className="bg-[#81001d]/20">
-              <tr className="border-b border-outline-variant/30 text-[11px] uppercase tracking-wider text-on-surface font-bold">
-                <th className="py-3 pl-4">Assets Name</th>
-                <th className="py-3 text-center">PQC Support</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assets.slice(0, 8).map((asset, i) => (
-                <tr key={i} className="border-b border-outline-variant/10 text-sm cursor-pointer hover:bg-surface-variant/40 transition-colors" onClick={() => setSelectedAsset(asset)}>
-                  <td className="py-3 pl-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px] text-secondary">language</span> 
-                    {asset.domain || asset.ip || `Asset ${i + 1}`}
-                  </td>
-                  <td className="py-3 text-center font-bold text-[16px]">
-                    {(asset.pqc_supported || asset.pqc || (asset.crypto_algorithm || '').toLowerCase().includes('kyber')) 
-                      ? <span className="text-[#4ade80]">✓</span> 
-                      : <span className="text-[#ef4444]">✗</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          <div className="mt-4 bg-surface-container-low p-4 rounded-lg border border-outline-variant/30">
-            <h4 className="text-xs font-bold uppercase tracking-wider mb-3 text-on-surface border-b border-outline-variant/20 pb-2">Improvement Recommendations</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {recommendations.slice(0,4).map((rec, i) => (
-                <div key={i} className="flex items-center gap-2 bg-surface p-2 rounded lg border border-outline-variant/10 text-[11px] font-medium text-on-surface-variant">
-                  <span className="material-symbols-outlined text-[14px] text-[#eab308]">warning</span>
-                  {typeof rec === 'string' ? rec : rec.title || JSON.stringify(rec)}
-                </div>
-              ))}
-            </div>
+        <div className="flex flex-wrap items-center gap-3 text-xs font-bold w-full lg:w-auto">
+          <div className="bg-[#ecfdf5]/90 border border-[#a7f3d0]/30 text-[#059669] px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm flex-1 lg:flex-none justify-center">
+             <span className="material-symbols-outlined text-[16px]">verified_user</span>
+             <span className="uppercase tracking-wider">Elite-PQC Ready <span className="ml-1 text-sm">{elite}</span></span>
+          </div>
+          <div className="bg-surface-container text-on-surface px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm border border-outline-variant/30 flex-1 lg:flex-none justify-center">
+             <span className="material-symbols-outlined text-[16px] text-secondary">stacked_line_chart</span>
+             <span className="uppercase tracking-wider">Standard <span className="ml-1 text-sm text-secondary">{standard}</span></span>
+          </div>
+          <div className="bg-surface-container text-on-surface px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm border border-outline-variant/30 flex-1 lg:flex-none justify-center">
+             <span className="material-symbols-outlined text-[16px] text-[#f97316]">warning</span>
+             <span className="uppercase tracking-wider">Legacy <span className="ml-1 text-sm text-[#f97316]">{legacy}</span></span>
+          </div>
+          <div className="bg-[#fff1f2]/90 border border-[#fecdd3]/30 text-[#be123c] px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm flex-1 lg:flex-none justify-center">
+             <span className="material-symbols-outlined text-[16px]">dns</span>
+             <span className="uppercase tracking-wider">Critical Apps <span className="ml-1 text-sm">{critical}</span></span>
           </div>
         </div>
       </div>
 
-      <div className="col-span-12 lg:col-span-4 glass-card p-4 rounded-xl border border-outline-variant/30 shadow-2xl shadow-[#1d1b19]/5">
-        <div className="bg-surface-container-low p-5 rounded-lg border border-outline-variant/30 h-full flex flex-col shadow-inner">
-          <h4 className="font-bold text-on-surface border-b border-outline-variant/20 pb-3 mb-5 text-sm uppercase tracking-wider">App Details</h4>
-          {activeApp ? (
-            <div className="space-y-4 text-xs font-medium text-on-surface-variant flex-1">
-              <div className="flex items-center gap-3 bg-surface p-3 rounded border border-outline-variant/10">
-                <span className="material-symbols-outlined text-xl text-secondary">account_circle</span> 
-                <span className="font-bold text-on-surface text-sm truncate">{activeApp.domain || activeApp.ip || 'Unknown'}</span>
+      {/* Row 1 */}
+      {/* Assets by Grade */}
+      <div className="col-span-12 lg:col-span-4 glass-card p-5 rounded-2xl border border-outline-variant/30 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col bg-surface min-h-[290px]">
+        <h3 className="font-bold text-sm mb-5 text-secondary uppercase tracking-wider">Assets by Grade</h3>
+        <div className="flex-1 w-full"><Bar data={barData} options={barOptions} /></div>
+      </div>
+
+      {/* Application Status */}
+      <div className="col-span-12 lg:col-span-4 glass-card p-5 rounded-2xl border border-outline-variant/30 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col bg-surface min-h-[290px]">
+        <h3 className="font-bold text-sm mb-5 text-secondary uppercase tracking-wider">Application Status</h3>
+        <div className="flex-1 w-full relative mb-5"><Doughnut data={doughnutData} options={doughnutOptions} /></div>
+        <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-xs font-medium text-on-surface mt-auto">
+          <div className="flex justify-between items-center"><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 bg-[#4ade80]"></span> Elite-PQC Ready</div> <span className="text-[#4ade80] font-bold">{elite}</span></div>
+          <div className="flex justify-between items-center"><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 bg-[#eab308]"></span> Standard</div> <span className="text-[#eab308] font-bold">{standard}</span></div>
+          <div className="flex justify-between items-center"><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 bg-[#f97316]"></span> Legacy</div> <span className="text-[#f97316] font-bold">{legacy}</span></div>
+          <div className="flex justify-between items-center"><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 bg-[#7f1d1d]"></span> Critical</div> <span className="text-[#7f1d1d] font-bold">{critical}</span></div>
+        </div>
+      </div>
+
+      {/* Migration Readiness */}
+      <div className="col-span-12 lg:col-span-4 glass-card p-5 rounded-2xl border border-outline-variant/30 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col bg-surface min-h-[290px]">
+        <h3 className="font-bold text-sm mb-1 text-secondary uppercase tracking-wider">Migration Readiness</h3>
+        <p className="text-xs text-on-surface-variant mb-6">Progress towards PQC isolation.</p>
+        
+        <div className="space-y-6 mt-auto mb-2">
+          <div>
+            <div className="flex justify-between text-xs mb-2"><span className="text-on-surface font-medium">Secure and PQC Ready</span> <span><span className="text-[#4ade80] font-bold">{elite}</span> <span className="text-on-surface-variant ml-1 font-mono">({elitePct}%)</span></span></div>
+            <div className="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden"><div className="bg-[#4ade80] h-full" style={{width: `${elitePct}%`}}></div></div>
+          </div>
+          <div>
+            <div className="flex justify-between text-xs mb-2"><span className="text-on-surface font-medium">Moderate / Transition</span> <span><span className="text-[#eab308] font-bold">{standard}</span> <span className="text-on-surface-variant ml-1 font-mono">({stdPct}%)</span></span></div>
+            <div className="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden"><div className="bg-[#eab308] h-full" style={{width: `${stdPct}%`}}></div></div>
+          </div>
+          <div>
+            <div className="flex justify-between text-xs mb-2"><span className="text-on-surface font-medium">High Risk / Vulnerable</span> <span><span className="text-[#ef4444] font-bold">{critical + legacy}</span> <span className="text-on-surface-variant ml-1 font-mono">({criticalPct + legacyPct}%)</span></span></div>
+            <div className="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden"><div className="bg-[#ef4444] h-full" style={{width: `${criticalPct + legacyPct}%`}}></div></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2 */}
+      {/* Asset Inventory */}
+      <div className="col-span-12 lg:col-span-4 glass-card p-5 rounded-2xl border border-outline-variant/30 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col bg-surface min-h-[340px] max-h-[380px]">
+        <div className="flex justify-between items-center mb-5">
+          <h3 className="font-bold text-sm text-secondary uppercase tracking-wider">Asset Inventory</h3>
+          <span className="text-xs text-on-surface-variant font-medium">{assets.length > 0 ? assets.length : total} Selected</span>
+        </div>
+        <div className="text-xs font-bold text-secondary mb-3 px-2 uppercase tracking-wider border-b border-outline-variant/20 pb-2">HostName / IP</div>
+        <div className="overflow-y-auto flex-1 space-y-1.5 pr-2 custom-scrollbar">
+          {assets.map((asset, i) => (
+            <div 
+              key={i} 
+              className={`p-2.5 rounded-xl cursor-pointer transition-colors ${activeApp === asset ? 'bg-secondary/10 border-l-4 border-secondary' : 'hover:bg-surface-variant/50 border-l-4 border-transparent'}`}
+               onClick={() => setSelectedAsset(asset)}
+            >
+              <div className="font-bold text-on-surface text-sm">{asset.domain || `Asset ${i+1}`}</div>
+              <div className="text-xs text-on-surface-variant mt-1 font-mono opacity-80">{asset.ip || 'Unknown IP'}{asset.port ? `:${asset.port}` : ':443'}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Asset Deep Dive */}
+      <div className="col-span-12 lg:col-span-4 glass-card p-5 rounded-2xl border border-outline-variant/30 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col bg-surface min-h-[340px]">
+        <h3 className="font-bold text-sm mb-5 text-secondary uppercase tracking-wider">Asset Deep Dive</h3>
+        {activeApp ? (
+          <div className="flex-1 flex flex-col">
+            <div className="flex items-center gap-4 mb-6 bg-surface-container-low p-4 rounded-xl border border-outline-variant/20 shadow-sm">
+              <div className="w-12 h-12 bg-[#81001d] rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-inner">
+                {(activeApp.domain ? activeApp.domain.charAt(0) : 'A').toUpperCase()}
               </div>
-              <div className="flex items-center gap-3 px-2 mt-4">
-                <span className="material-symbols-outlined text-lg opacity-60">person</span> 
-                Owner: {activeApp.owner || 'IT Security'}
-              </div>
-              <div className="flex items-center gap-3 px-2">
-                <span className="material-symbols-outlined text-lg opacity-60">public</span> 
-                Exposure: {activeApp.exposure || 'Internal'}
-              </div>
-              <div className="flex items-center gap-3 px-2">
-                <span className="material-symbols-outlined text-lg opacity-60">key</span> 
-                TLS: {activeApp.crypto_algorithm || 'Unknown'}
-              </div>
-              <div className="flex items-center gap-3 px-2">
-                <span className="material-symbols-outlined text-lg opacity-60">speed</span> 
-                Score: <span className={activeApp.risk_level === 'high' ? 'text-[#ef4444] font-bold' : ''}>{activeApp.risk_score || 'N/A'} ({activeApp.risk_level || 'Unknown'})</span>
-              </div>
-              <div className="flex items-center gap-3 px-2">
-                <span className="material-symbols-outlined text-lg opacity-60">info</span> 
-                Status: {(activeApp.risk_level || '').toLowerCase() === 'high' ? 'Legacy' : 'Standard'}
+              <div className="overflow-hidden">
+                <div className="font-bold text-on-surface text-[15px] truncate">{activeApp.domain || 'Unknown Host'}</div>
+                <div className="text-xs text-on-surface-variant font-mono mt-1 opacity-80">{activeApp.ip || 'Unknown IP'}{activeApp.port ? `:${activeApp.port}` : ':443'}</div>
               </div>
             </div>
-          ) : (
-            <p className="text-sm text-on-surface-variant italic text-center mt-10">
-              Select an application to view details.
-            </p>
-          )}
+            
+            <div className="grid grid-cols-2 gap-3 flex-1 h-full">
+              <div className="bg-surface-container-low p-3 md:p-4 rounded-xl border border-outline-variant/20 flex flex-col justify-center">
+                 <div className="text-[11px] text-on-surface-variant font-medium uppercase tracking-wider mb-1.5 opacity-80">Type</div>
+                 <div className="text-base font-bold text-secondary capitalize">{activeApp.type || activeApp.device_type || 'Web Server'}</div>
+              </div>
+              <div className="bg-surface-container-low p-3 md:p-4 rounded-xl border border-outline-variant/20 flex flex-col justify-center">
+                 <div className="text-[11px] text-on-surface-variant font-medium uppercase tracking-wider mb-1.5 opacity-80">TLS</div>
+                 <div className="text-base font-bold text-on-surface">{activeApp.tls_version || activeApp.crypto_algorithm || 'TLSv1.3'}</div>
+              </div>
+              <div className="bg-surface-container-low p-3 md:p-4 rounded-xl border border-outline-variant/20 flex flex-col justify-center col-span-2">
+                 <div className="text-[11px] text-on-surface-variant font-medium uppercase tracking-wider mb-1.5 opacity-80">Risk</div>
+                 <div className={`text-base font-bold capitalize ${
+                   ((activeApp.risk_level || '').toLowerCase() === 'high' || (activeApp.risk_level || '').toLowerCase() === 'critical') ? 'text-[#ef4444]' : 
+                   ((activeApp.risk_level || '').toLowerCase() === 'medium' || (activeApp.risk_level || '').toLowerCase() === 'moderate') ? 'text-[#eab308]' : 
+                   'text-[#4ade80]'
+                 }`}>{activeApp.risk_level || 'Moderate'}</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-sm text-on-surface-variant italic border-2 border-dashed border-outline-variant/20 rounded-xl">Select an asset</div>
+        )}
+      </div>
+
+      {/* Priority Actions */}
+      <div className="col-span-12 lg:col-span-4 glass-card p-5 rounded-2xl border border-outline-variant/30 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col bg-surface min-h-[340px] max-h-[380px]">
+        <h3 className="font-bold text-sm mb-5 text-secondary uppercase tracking-wider">Priority Actions</h3>
+        <div className="overflow-y-auto pr-2 space-y-3 custom-scrollbar flex-1">
+          {recommendations.slice(0,5).map((rec, i) => {
+             const title = typeof rec === 'string' ? rec : rec.title;
+             const isHigh = title.toLowerCase().includes('tls') || title.toLowerCase().includes('kyber') || title.toLowerCase().includes('upgrade');
+             return (
+               <div key={i} className={`p-4 rounded-xl flex items-start gap-4 border ${isHigh ? 'bg-[#ef4444]/5 border-[#ef4444]/20' : 'bg-surface-variant/30 border-outline-variant/20'}`}>
+                 <span className={`material-symbols-outlined mt-0.5 text-[20px] ${isHigh ? 'text-[#ef4444]' : 'text-[#eab308]'}`}>
+                   {title.toLowerCase().includes('kyber') ? 'key' : title.toLowerCase().includes('upgrade') ? 'security' : 'build'}
+                 </span>
+                 <div>
+                   <div className="text-sm font-bold text-on-surface leading-tight">{title}</div>
+                   <div className={`text-[11px] font-bold mt-1.5 uppercase tracking-wide ${isHigh ? 'text-[#ef4444]' : 'text-[#eab308]'}`}>
+                     {isHigh ? 'High Priority' : 'Medium Priority'}
+                   </div>
+                 </div>
+               </div>
+             )
+          })}
         </div>
       </div>
     </div>
