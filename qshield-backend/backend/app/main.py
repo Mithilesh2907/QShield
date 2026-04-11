@@ -32,13 +32,13 @@ scheduler = BackgroundScheduler(timezone="Asia/Kolkata")
 
 from backend.app.db import engine, Base
 from backend.app.routers import auth
-from backend.app.services.asset_discovery import discover_assets
+from backend.app.services.asset_discovery import discover_assets, clean_domain
 from backend.app.services.cbom_generator import generate_cbom
 from backend.app.services.pqc_risk import assess_pqc_risk
 from backend.app.services.rating_engine import calculate_rating
 from backend.app.services.nmap_scan import scan_ports, scan_service_versions
 from backend.app.services.real_crypto_scan import scan_tls
-from backend.app.services.storage import save_scan, get_latest_scans
+from backend.app.services.storage import save_scan, get_latest_scans, save_nuclei_scan, get_latest_nuclei_scan, get_nuclei_scan
 from backend.app.services.cert_analysis import get_certificate_expiry
 from backend.app.services.security_headers import check_security_headers
 from backend.app.services.schedule_store import add_schedule, load_schedules, update_schedule_status
@@ -743,15 +743,71 @@ def run_nuclei_scan(request: NucleiRequest):
     if current_scan["running"] and current_scan["process"] and current_scan["process"].poll() is None:
         return {"success": False, "error": "Nuclei scan already running", "findings": [], "summary": {}, "total": 0}
 
-    raw_domains = [domain.strip() for domain in (request.domains or []) if domain and domain.strip()]
-    domains = []
-    for domain in raw_domains:
-        if "://" in domain:
-            domains.append(domain)
-        else:
-            domains.append(f"https://{domain}")
-    if not domains:
-        return {"success": False, "error": "No domains provided", "findings": [], "summary": {}, "total": 0}
+    http_live_path = Path(os.getcwd()) / "http_live.txt"
+    nuclei_targets_path = Path(os.getcwd()) / "nuclei_targets.txt"
+
+    if not http_live_path.exists():
+        return {
+            "success": False,
+            "error": "http_live.txt not found. Run the recon pipeline first.",
+            "findings": [],
+            "summary": {},
+            "total": 0,
+        }
+
+    http_live = {
+        clean_domain(line.strip())
+        for line in http_live_path.read_text(encoding="utf-8").splitlines()
+        if clean_domain(line.strip())
+    }
+
+    if request.domains:
+        print("Using user-provided domains")
+        raw_targets = [domain.strip() for domain in request.domains if domain and domain.strip()]
+    else:
+        print("Using nuclei_targets.txt")
+        if not nuclei_targets_path.exists():
+            return {
+                "success": False,
+                "error": "nuclei_targets.txt not found. Run the recon pipeline first or provide domains.",
+                "findings": [],
+                "summary": {},
+                "total": 0,
+            }
+        raw_targets = [
+            line.strip()
+            for line in nuclei_targets_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    targets = []
+    for target in raw_targets:
+        cleaned = clean_domain(target)
+        if cleaned and cleaned in http_live:
+            targets.append(cleaned)
+    targets = list(dict.fromkeys(targets))
+
+    if not targets:
+        return {
+            "success": False,
+            "error": "No valid targets after filtering against http_live.txt",
+            "findings": [],
+            "summary": {},
+            "total": 0,
+        }
+
+    print(f"Nuclei target count: {len(targets)}")
+
+    # Persist the final filtered list and run Nuclei directly from it.
+    nuclei_targets_path.write_text("\n".join(targets) + "\n", encoding="utf-8")
+    if not nuclei_targets_path.exists() or nuclei_targets_path.stat().st_size == 0:
+        return {
+            "success": False,
+            "error": "Targets file is missing or empty",
+            "findings": [],
+            "summary": {},
+            "total": 0,
+        }
 
     local_nuclei = os.path.join(os.getcwd(), "nuclei.exe")
     nuclei_cmd = local_nuclei if os.path.exists(local_nuclei) else "nuclei"
@@ -759,107 +815,99 @@ def run_nuclei_scan(request: NucleiRequest):
         return {"success": False, "error": f"Nuclei not found at {nuclei_cmd}", "findings": [], "summary": {}, "total": 0}
 
     mode = (request.mode or "fast").lower()
-    with tempfile.TemporaryDirectory() as tmpdir:
-        domains_path = os.path.join(tmpdir, "domains.txt")
-        with open(domains_path, "w", encoding="utf-8") as handle:
-            handle.write("\n".join(domains))
+    current_scan["running"] = True
+    current_scan["results"] = []
+    current_scan["stats"] = {
+        "requests": 0,
+        "templates": 0,
+        "last_lines": [],
+        "last_update": None,
+    }
 
-        if not os.path.isfile(domains_path):
-            return {"success": False, "error": "Domains file was not created", "findings": [], "summary": {}, "total": 0}
-        if os.path.getsize(domains_path) == 0:
-            return {"success": False, "error": "Domains file is empty", "findings": [], "summary": {}, "total": 0}
-
-        current_scan["running"] = True
-        current_scan["results"] = []
-        current_scan["stats"] = {
-            "requests": 0,
-            "templates": 0,
-            "last_lines": [],
-            "last_update": None,
-        }
-
-        try:
-            base_cmd = [
-                nuclei_cmd,
-                "-l",
-                domains_path,
-                "-jsonl",
-                "-stats",
+    try:
+        base_cmd = [
+            nuclei_cmd,
+            "-l",
+            str(nuclei_targets_path),
+            "-jsonl",
+            "-stats",
+        ]
+        if mode == "deep":
+            cmd = base_cmd
+        else:
+            cmd = base_cmd + [
+                "-c",
+                "50",
+                "-timeout",
+                "5",
+                "-retries",
+                "1",
+                "-rate-limit",
+                "150",
+                "-severity",
+                "high",
+                "-tags",
+                "cve,exposure",
             ]
-            if mode == "deep":
-                cmd = base_cmd
-            else:
-                cmd = base_cmd + [
-                    "-c",
-                    "50",
-                    "-timeout",
-                    "5",
-                    "-retries",
-                    "1",
-                    "-rate-limit",
-                    "150",
-                    "-severity",
-                    "high",
-                    "-tags",
-                    "cve,exposure",
-                ]
 
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-            )
-            current_scan["process"] = process
-        except FileNotFoundError:
-            current_scan["running"] = False
-            return {"success": False, "error": "Nuclei binary not found on server PATH", "findings": [], "summary": {}, "total": 0}
-        except Exception as exc:
-            current_scan["running"] = False
-            return {"success": False, "error": f"Failed to run nuclei: {exc}", "findings": [], "summary": {}, "total": 0}
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        current_scan["process"] = process
+    except FileNotFoundError:
+        current_scan["running"] = False
+        return {"success": False, "error": "Nuclei binary not found on server PATH", "findings": [], "summary": {}, "total": 0}
+    except Exception as exc:
+        current_scan["running"] = False
+        return {"success": False, "error": f"Failed to run nuclei: {exc}", "findings": [], "summary": {}, "total": 0}
 
-        if process.stdout:
-            for line in process.stdout:
-                line = line.strip()
-                if not line:
-                    continue
-                print(line)
-                current_scan["stats"]["last_update"] = line
-                parsed_stats = None
-                if line.startswith("{") and line.endswith("}"):
-                    try:
-                        parsed_stats = json.loads(line)
-                    except json.JSONDecodeError:
-                        parsed_stats = None
-                    if isinstance(parsed_stats, dict) and (
-                        parsed_stats.get("template-id") or parsed_stats.get("template") or parsed_stats.get("matched-at")
-                    ):
-                        info = parsed_stats.get("info") or {}
-                        current_scan["results"].append({
-                            "name": info.get("name") or parsed_stats.get("name") or "Unknown",
-                            "severity": (info.get("severity") or parsed_stats.get("severity") or "unknown").lower(),
-                            "template": parsed_stats.get("template-id") or parsed_stats.get("template") or "unknown",
-                            "matched": parsed_stats.get("matched-at") or parsed_stats.get("matched") or parsed_stats.get("host") or "",
-                        })
+    if process.stdout:
+        for line in process.stdout:
+            if not current_scan["running"]:
+                break
+            line = line.strip()
+            if not line:
+                continue
+            print(line)
+            current_scan["stats"]["last_update"] = line
+            parsed_stats = None
+            if line.startswith("{") and line.endswith("}"):
+                try:
+                    parsed_stats = json.loads(line)
+                except json.JSONDecodeError:
+                    parsed_stats = None
                 if isinstance(parsed_stats, dict) and (
-                    "percent" in parsed_stats
-                    or "requests" in parsed_stats
-                    or "total" in parsed_stats
-                    or "rps" in parsed_stats
+                    parsed_stats.get("template-id") or parsed_stats.get("template") or parsed_stats.get("matched-at")
                 ):
-                    current_scan["stats"]["stats"] = parsed_stats
-                    if "requests" in parsed_stats:
-                        current_scan["stats"]["requests"] = int(parsed_stats.get("requests") or 0)
-                    if "templates" in parsed_stats:
-                        current_scan["stats"]["templates"] = int(parsed_stats.get("templates") or 0)
-                else:
-                    current_scan["stats"]["last_lines"] = (current_scan["stats"]["last_lines"] + [line])[-12:]
-                    req_match = re.search(r"requests\s*:\s*(\d+)", line, re.IGNORECASE)
-                    tmpl_match = re.search(r"templates\s*:\s*(\d+)", line, re.IGNORECASE)
-                    if req_match:
-                        current_scan["stats"]["requests"] = int(req_match.group(1))
-                    if tmpl_match:
-                        current_scan["stats"]["templates"] = int(tmpl_match.group(1))
+                    info = parsed_stats.get("info") or {}
+                    current_scan["results"].append({
+                        "name": info.get("name") or parsed_stats.get("name") or "Unknown",
+                        "severity": (info.get("severity") or parsed_stats.get("severity") or "unknown").lower(),
+                        "template": parsed_stats.get("template-id") or parsed_stats.get("template") or "unknown",
+                        "matched": parsed_stats.get("matched-at") or parsed_stats.get("matched") or parsed_stats.get("host") or "",
+                    })
+            if isinstance(parsed_stats, dict) and (
+                "percent" in parsed_stats
+                or "requests" in parsed_stats
+                or "total" in parsed_stats
+                or "rps" in parsed_stats
+            ):
+                current_scan["stats"]["stats"] = parsed_stats
+                if "requests" in parsed_stats:
+                    current_scan["stats"]["requests"] = int(parsed_stats.get("requests") or 0)
+                if "templates" in parsed_stats:
+                    current_scan["stats"]["templates"] = int(parsed_stats.get("templates") or 0)
+            else:
+                current_scan["stats"]["last_lines"] = (current_scan["stats"]["last_lines"] + [line])[-12:]
+                req_match = re.search(r"requests\s*:\s*(\d+)", line, re.IGNORECASE)
+                tmpl_match = re.search(r"templates\s*:\s*(\d+)", line, re.IGNORECASE)
+                if req_match:
+                    current_scan["stats"]["requests"] = int(req_match.group(1))
+                if tmpl_match:
+                    current_scan["stats"]["templates"] = int(tmpl_match.group(1))
 
         process.wait()
 
@@ -868,12 +916,21 @@ def run_nuclei_scan(request: NucleiRequest):
 
     if process.returncode != 0:
         print("Nuclei failed")
+        run_payload = {
+            "success": False,
+            "mode": mode,
+            "targets": targets,
+            "target_count": len(targets),
+            "findings": current_scan["results"],
+        }
+        run_id = save_nuclei_scan(run_payload)
         return {
             "success": False,
             "error": f"Nuclei exited with code {process.returncode}",
             "findings": current_scan["results"],
             "summary": {},
             "total": len(current_scan["results"]),
+            "run_id": run_id,
         }
 
     summary = {}
@@ -881,7 +938,17 @@ def run_nuclei_scan(request: NucleiRequest):
         severity = entry.get("severity", "unknown") or "unknown"
         summary[severity] = summary.get(severity, 0) + 1
 
-    return {"success": True, "findings": current_scan["results"], "summary": summary, "total": len(current_scan["results"])}
+    run_payload = {
+        "success": True,
+        "mode": mode,
+        "targets": targets,
+        "target_count": len(targets),
+        "findings": current_scan["results"],
+        "summary": summary,
+    }
+    run_id = save_nuclei_scan(run_payload)
+
+    return {"success": True, "findings": current_scan["results"], "summary": summary, "total": len(current_scan["results"]), "run_id": run_id}
 
 
 @app.post("/stop-nuclei")
@@ -912,8 +979,41 @@ def nuclei_status():
 
 
 @app.get("/nuclei-results")
-def nuclei_results():
-    return {"findings": current_scan["results"], "total": len(current_scan["results"])}
+def nuclei_results(run_id: str | None = None):
+    if run_id:
+        stored = get_nuclei_scan(run_id)
+        if stored and isinstance(stored.get("payload"), dict):
+            payload = stored["payload"]
+            return {
+                "source": "saved",
+                "run_id": stored.get("run_id"),
+                "timestamp": stored.get("timestamp"),
+                "findings": payload.get("findings") or [],
+                "summary": payload.get("summary") or {},
+                "total": len(payload.get("findings") or []),
+            }
+        return {"source": "saved", "run_id": run_id, "timestamp": None, "findings": [], "summary": {}, "total": 0}
+
+    if current_scan["results"]:
+        summary = {}
+        for entry in current_scan["results"]:
+            severity = entry.get("severity", "unknown") or "unknown"
+            summary[severity] = summary.get(severity, 0) + 1
+        return {"source": "memory", "findings": current_scan["results"], "summary": summary, "total": len(current_scan["results"])}
+
+    stored = get_latest_nuclei_scan()
+    if stored and isinstance(stored.get("payload"), dict):
+        payload = stored["payload"]
+        return {
+            "source": "saved",
+            "run_id": stored.get("run_id"),
+            "timestamp": stored.get("timestamp"),
+            "findings": payload.get("findings") or [],
+            "summary": payload.get("summary") or {},
+            "total": len(payload.get("findings") or []),
+        }
+
+    return {"source": "none", "findings": [], "summary": {}, "total": 0}
 
 
 @app.get("/{full_path:path}")
