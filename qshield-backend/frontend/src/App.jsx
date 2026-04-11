@@ -57,15 +57,16 @@ export default function App() {
     }
   }, [nucleiResults]);
 
-  const handleScan = async (domain) => {
+  const handleScan = async (domain, options = {}) => {
     setIsLoading(true);
     setError(null);
     try {
+      const use_crtsh = Boolean(options.use_crtsh);
       // Proxy setup in Vite, or complete URL if CORS is enabled
       const response = await fetch('http://localhost:8000/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain })
+        body: JSON.stringify({ domain, use_crtsh })
       });
       if (!response.ok) {
         throw new Error('Scan failed');

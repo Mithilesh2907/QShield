@@ -77,6 +77,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 class ScanRequest(BaseModel):
     domain: str
+    use_crtsh: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -441,7 +442,7 @@ def run_crypto_scans(assets: list[dict]) -> list[dict]:
 @app.post("/scan")
 def scan_domain(request: ScanRequest):
     logger.info("scan request for %s", request.domain)
-    assets = discover_assets(request.domain) or []
+    assets, crtsh_certificates = discover_assets(request.domain, use_crtsh=request.use_crtsh)
     crypto_results = run_crypto_scans(assets)
     logger.debug("crypto scan results: %s", crypto_results)
 
@@ -618,6 +619,9 @@ def scan_domain(request: ScanRequest):
         "assets": assets,
         "cbom": cbom,
     }
+
+    if request.use_crtsh:
+        response["crtsh_certificates"] = crtsh_certificates
 
     save_scan(request.domain, response)
 

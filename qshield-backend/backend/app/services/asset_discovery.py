@@ -2,6 +2,7 @@ import logging
 import re
 import socket
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, List, Tuple
 
@@ -10,6 +11,11 @@ try:
     import dns.resolver
 except ImportError:  # pragma: no cover
     dns = None
+
+try:
+    import requests
+except ImportError:  # pragma: no cover
+    requests = None
 
 
 logger = logging.getLogger(__name__)
@@ -133,6 +139,164 @@ def _run_subfinder(domain: str) -> Iterable[str]:
     return []
 
 
+def get_crtsh_subdomains(domain: str) -> List[str]:
+    domain_clean = clean_domain(domain)
+    if not domain_clean:
+        return []
+
+    if requests is None:
+        logger.warning("requests not installed; crt.sh disabled")
+        return []
+
+    url = f"https://crt.sh/?q=%25.{domain_clean}&output=json"
+    try:
+        resp = requests.get(url, timeout=10)
+        if resp.status_code != 200:
+            logger.warning("crt.sh returned %s", resp.status_code)
+            return []
+
+        try:
+            payload = resp.json()
+        except ValueError:
+            return []
+
+        results: set[str] = set()
+        if not isinstance(payload, list):
+            return []
+
+        for entry in payload:
+            if not isinstance(entry, dict):
+                continue
+            name_value = entry.get("name_value")
+            if not isinstance(name_value, str):
+                continue
+            for raw in name_value.splitlines():
+                candidate = (raw or "").strip()
+                if not candidate or candidate.startswith("*."):
+                    continue
+                cleaned = clean_domain(candidate)
+                if cleaned and _is_valid_domain(cleaned):
+                    results.add(cleaned)
+
+        return list(results)
+
+    except Exception:
+        return []
+
+
+def _parse_crtsh_datetime(value: object) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+
+    candidate = value.strip()
+    if not candidate:
+        return None
+
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+        try:
+            parsed = datetime.strptime(candidate, fmt)
+            return parsed.replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+
+    try:
+        parsed = datetime.fromisoformat(candidate.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def get_crtsh_cert_info(domain: str) -> List[dict]:
+    domain_clean = clean_domain(domain)
+    if not domain_clean:
+        return []
+
+    if requests is None:
+        logger.warning("requests not installed; crt.sh disabled")
+        return []
+
+    url = f"https://crt.sh/?q=%25.{domain_clean}&output=json"
+    try:
+        resp = requests.get(url, timeout=10)
+        if resp.status_code != 200:
+            logger.warning("crt.sh returned %s", resp.status_code)
+            return []
+
+        try:
+            payload = resp.json()
+        except ValueError:
+            return []
+
+        if not isinstance(payload, list):
+            return []
+
+        now = datetime.now(timezone.utc)
+        by_serial: dict[str, dict] = {}
+
+        for entry in payload:
+            if not isinstance(entry, dict):
+                continue
+
+            not_after_raw = entry.get("not_after")
+            not_after_dt = _parse_crtsh_datetime(not_after_raw)
+            is_expired = bool(not_after_dt and now > not_after_dt)
+            days_remaining = None
+            if not_after_dt:
+                days_remaining = (not_after_dt - now).days
+
+            serial_number = entry.get("serial_number")
+            serial_key = str(serial_number).strip() if serial_number is not None else ""
+            if not serial_key:
+                serial_key = "|".join(
+                    str(part or "").strip()
+                    for part in (
+                        entry.get("common_name"),
+                        entry.get("issuer_name"),
+                        entry.get("not_after"),
+                        entry.get("not_before"),
+                    )
+                )
+
+            cert_info = {
+                "common_name": entry.get("common_name"),
+                "issuer": entry.get("issuer_name"),
+                "not_before": entry.get("not_before"),
+                "not_after": entry.get("not_after"),
+                "serial_number": entry.get("serial_number"),
+                "entry_timestamp": entry.get("entry_timestamp"),
+                "name_value": entry.get("name_value"),
+                "is_expired": is_expired,
+                "days_remaining": days_remaining,
+                "signature_algorithm": entry.get("signature_algorithm") or "unknown",
+                "key_algorithm": entry.get("key_algorithm") or "unknown",
+                "key_size": entry.get("key_size") or "unknown",
+            }
+
+            existing = by_serial.get(serial_key)
+            if existing is None:
+                by_serial[serial_key] = cert_info
+                continue
+
+            existing_ts = _parse_crtsh_datetime(existing.get("entry_timestamp"))
+            new_ts = _parse_crtsh_datetime(entry.get("entry_timestamp"))
+            if new_ts and (not existing_ts or new_ts > existing_ts):
+                by_serial[serial_key] = cert_info
+
+        certs = list(by_serial.values())
+        certs.sort(
+            key=lambda c: _parse_crtsh_datetime(c.get("entry_timestamp"))
+            or _parse_crtsh_datetime(c.get("not_after"))
+            or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True,
+        )
+        return certs[:100]
+
+    except Exception:
+        return []
+
+
 def _write_lines(path: Path, lines: Iterable[str]) -> None:
     items = list(lines)
     path.write_text("\n".join(items) + ("\n" if items else ""), encoding="utf-8")
@@ -202,16 +366,25 @@ def _run_dns(domains_path: Path, dns_live_path: Path) -> dict[str, str | None]:
     return resolved
 
 
-def discover_assets(domain: str):
-    subdomains = _run_subfinder(domain)
-    subdomains = [clean_domain(d) for d in subdomains if clean_domain(d)]
-    subdomains = list(set(subdomains))
+def discover_assets(domain: str, use_crtsh: bool = False) -> tuple[list[dict], list[dict]]:
+    subfinder_domains = list(_run_subfinder(domain))
+    print(f"Subfinder: {len(subfinder_domains)}")
 
-    cleaned = []
-    for d in subdomains:
-        if d and not d.startswith("*.") and _is_valid_domain(d):
-            cleaned.append(d)
-    subdomains = cleaned
+    if use_crtsh:
+        crtsh_domains = get_crtsh_subdomains(domain)
+        print(f"crt.sh: {len(crtsh_domains)}")
+        cert_info = get_crtsh_cert_info(domain)
+        print(f"crt.sh certs: {len(cert_info)}")
+    else:
+        crtsh_domains = []
+        cert_info = []
+
+    subdomains = list(set(subfinder_domains + crtsh_domains))
+    print(f"Total combined: {len(subdomains)}")
+
+    subdomains = [clean_domain(d) for d in subdomains if clean_domain(d)]
+    subdomains = [d for d in subdomains if _is_valid_domain(d) and not d.startswith("*.")]
+    subdomains = list(set(subdomains))
 
     domain_clean = clean_domain(domain)
     if domain_clean and _is_valid_domain(domain_clean) and domain_clean not in subdomains:
@@ -219,7 +392,7 @@ def discover_assets(domain: str):
 
     if not subdomains:
         logger.info("No valid subdomains found for %s", domain)
-        return []
+        return [], cert_info
 
     domains_path = Path("domains.txt")
     http_live_path = Path("http_live.txt")
@@ -260,4 +433,4 @@ def discover_assets(domain: str):
         logger.error("Subfinder returned no domains for %s", domain)
     print("Final assets:", len(assets))
 
-    return assets
+    return assets, cert_info

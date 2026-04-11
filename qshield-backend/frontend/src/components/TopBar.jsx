@@ -17,6 +17,7 @@ const isValidDomain = (value) => domainRegex.test(value) || ipRegex.test(value);
 export default function TopBar({ onScan }) {
   const [domain, setDomain] = useState('');
   const [inputError, setInputError] = useState('');
+  const [useCrtsh, setUseCrtsh] = useState(false);
 
   const handleSubmit = () => {
     setInputError('');
@@ -30,7 +31,7 @@ export default function TopBar({ onScan }) {
       return;
     }
     setDomain(sanitized);
-    onScan(sanitized);
+    onScan(sanitized, { use_crtsh: useCrtsh });
   };
 
   const handleKeyDown = (e) => {
@@ -66,6 +67,15 @@ export default function TopBar({ onScan }) {
           />
           <div className="absolute left-0 top-full mt-1 pl-3 text-xs text-red-500 w-full overflow-hidden text-ellipsis whitespace-nowrap">{helperText}</div>
         </div>
+        <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-on-surface-variant select-none">
+          <input
+            type="checkbox"
+            checked={useCrtsh}
+            onChange={(e) => setUseCrtsh(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+          crt.sh
+        </label>
         <button
           className="px-4 py-1.5 rounded-full bg-primary text-white font-bold text-sm hover:bg-primary-variant hover:shadow-[0_4px_12px_rgba(181,10,46,0.2)] transition-all"
           onClick={handleSubmit}
