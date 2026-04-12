@@ -10,6 +10,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from threading import Lock
 
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,7 +37,7 @@ from backend.app.services.asset_discovery import discover_assets, clean_domain
 from backend.app.services.cbom_generator import generate_cbom
 from backend.app.services.pqc_risk import assess_pqc_risk
 from backend.app.services.rating_engine import calculate_rating
-from backend.app.services.nmap_scan import scan_ports, scan_service_versions
+from backend.app.services.nmap_scan import scan_ports, scan_service_versions, run_nmap_scan
 from backend.app.services.real_crypto_scan import scan_tls
 from backend.app.services.storage import save_scan, get_latest_scans, save_nuclei_scan, get_latest_nuclei_scan, get_nuclei_scan
 from backend.app.services.cert_analysis import get_certificate_expiry
@@ -47,6 +48,185 @@ from backend.app.services.schedule_store import add_schedule, load_schedules, up
 Base.metadata.create_all(bind=engine)
 
 logger = logging.getLogger(__name__)
+
+
+current_domain_scan = {
+    "running": False,
+    "process": None,
+}
+_scan_state_lock = Lock()
+
+
+def _is_scan_running() -> bool:
+    with _scan_state_lock:
+        return bool(current_domain_scan.get("running"))
+
+
+def _set_scan_running(value: bool) -> None:
+    with _scan_state_lock:
+        current_domain_scan["running"] = value
+
+
+def _set_scan_process(process: subprocess.Popen | None) -> None:
+    with _scan_state_lock:
+        current_domain_scan["process"] = process
+
+
+def _parse_crtsh_datetime(value: object) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip()
+    if not candidate:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(candidate, fmt)
+        except ValueError:
+            continue
+    try:
+        return datetime.fromisoformat(candidate.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _build_crtsh_domain_map(crtsh_certificates: list[dict]) -> dict[str, list[dict]]:
+    domain_map: dict[str, list[dict]] = {}
+    for cert in crtsh_certificates or []:
+        if not isinstance(cert, dict):
+            continue
+        names: list[str] = []
+        name_value = cert.get("name_value")
+        if isinstance(name_value, str):
+            names.extend([line.strip() for line in name_value.splitlines() if line.strip()])
+        common_name = cert.get("common_name")
+        if isinstance(common_name, str) and common_name.strip():
+            names.append(common_name.strip())
+
+        normalized_names = []
+        for raw in names:
+            if raw.startswith("*."):
+                raw = raw[2:]
+            cleaned = clean_domain(raw)
+            if cleaned:
+                normalized_names.append(cleaned)
+
+        for name in set(normalized_names):
+            domain_map.setdefault(name, []).append(cert)
+
+    for name, certs in domain_map.items():
+        certs.sort(key=lambda c: _parse_crtsh_datetime(c.get("entry_timestamp")) or datetime.min, reverse=True)
+        domain_map[name] = certs
+    return domain_map
+
+
+def _apply_crtsh_intel_to_assets(assets: list[dict], crtsh_certificates: list[dict]) -> None:
+    if not assets or not crtsh_certificates:
+        return
+
+    domain_map = _build_crtsh_domain_map(crtsh_certificates)
+
+    for asset in assets:
+        domain = clean_domain(asset.get("domain") or "")
+        if not domain:
+            continue
+
+        certs = domain_map.get(domain) or []
+        latest = certs[0] if certs else None
+        if not latest:
+            continue
+
+        days_remaining = latest.get("days_remaining")
+        is_expired = bool(latest.get("is_expired"))
+        expiring_soon = isinstance(days_remaining, int) and days_remaining < 30 and not is_expired
+
+        if is_expired:
+            expiry_status = "Expired"
+            cert_risk = "High"
+        elif expiring_soon:
+            expiry_status = "Expiring Soon"
+            cert_risk = "Medium"
+        else:
+            expiry_status = "Valid"
+            cert_risk = "Low"
+
+        san_count = 0
+        if isinstance(latest.get("name_value"), str):
+            san_names = []
+            for line in latest["name_value"].splitlines():
+                candidate = (line or "").strip()
+                if candidate.startswith("*."):
+                    candidate = candidate[2:]
+                cleaned = clean_domain(candidate)
+                if cleaned:
+                    san_names.append(cleaned)
+            san_count = len(set(san_names))
+
+        asset.update({
+            "expiry_date": latest.get("not_after"),
+            "days_remaining": days_remaining,
+            "issuer": latest.get("issuer"),
+            "cert_count": len(certs),
+            "san_count": san_count,
+            "expiry_status": expiry_status,
+            "cert_risk": cert_risk,
+            "cert_valid_from": latest.get("not_before"),
+            "cert_valid_to": latest.get("not_after"),
+        })
+
+
+def _apply_crtsh_intel_to_cbom(cbom: list[dict], crtsh_certificates: list[dict]) -> None:
+    if not cbom or not crtsh_certificates:
+        return
+
+    domain_map = _build_crtsh_domain_map(crtsh_certificates)
+
+    for entry in cbom:
+        domain = clean_domain(entry.get("domain") or "")
+        if not domain:
+            continue
+
+        certs = domain_map.get(domain) or []
+        latest = certs[0] if certs else None
+        if not latest:
+            continue
+
+        days_remaining = latest.get("days_remaining")
+        is_expired = bool(latest.get("is_expired"))
+        expiring_soon = isinstance(days_remaining, int) and days_remaining < 30 and not is_expired
+
+        if is_expired:
+            expiry_status = "Expired"
+            cert_risk = "High"
+        elif expiring_soon:
+            expiry_status = "Expiring Soon"
+            cert_risk = "Medium"
+        else:
+            expiry_status = "Valid"
+            cert_risk = "Low"
+
+        san_count = 0
+        if isinstance(latest.get("name_value"), str):
+            san_names = []
+            for line in latest["name_value"].splitlines():
+                candidate = (line or "").strip()
+                if candidate.startswith("*."):
+                    candidate = candidate[2:]
+                cleaned = clean_domain(candidate)
+                if cleaned:
+                    san_names.append(cleaned)
+            san_count = len(set(san_names))
+
+        entry.update({
+            "expiry_date": latest.get("not_after"),
+            "days_remaining": days_remaining,
+            "issuer": latest.get("issuer"),
+            "cert_count": len(certs),
+            "san_count": san_count,
+            "expiry_status": expiry_status,
+            "cert_risk": cert_risk,
+            "cert_valid_from": latest.get("not_before"),
+            "cert_valid_to": latest.get("not_after"),
+        })
 
 
 @asynccontextmanager
@@ -329,15 +509,49 @@ def classify_asset_type(domain: str | None, ports: dict | None, is_api: bool = F
     return "server"
 
 
-def run_crypto_scans(assets: list[dict]) -> list[dict]:
+def run_crypto_scans(
+    assets: list[dict],
+    register_process=None,
+    is_running=None,
+) -> list[dict]:
     results = []
+    nmap_workers = 10
+    print(f"Nmap parallel workers: {nmap_workers}")
+
+    unique_targets = {
+        (asset.get("ip") or asset.get("domain"))
+        for asset in assets
+        if asset.get("domain") and (asset.get("ip") or asset.get("domain"))
+    }
+    nmap_results: dict[str, dict] = {}
+    with ThreadPoolExecutor(max_workers=nmap_workers) as executor:
+        futures = {
+            executor.submit(
+                run_nmap_scan,
+                target,
+                register_process=register_process,
+                is_running=is_running,
+            ): target
+            for target in unique_targets
+        }
+        for future in as_completed(futures):
+            if is_running and not is_running():
+                break
+            target = futures[future]
+            try:
+                nmap_results[target] = future.result() or {"target": target, "services": [], "ip": None}
+            except Exception as exc:
+                print(f"Nmap error: {exc}")
+                nmap_results[target] = {"target": target, "services": [], "ip": None}
 
     def _scan_asset(asset: dict):
+        if is_running and not is_running():
+            return None
         domain = asset.get("domain")
         if not domain:
             return None
         print(f"Scanning {domain}...")
-        port_info = scan_ports(domain)
+        port_info = scan_ports(domain, register_process=register_process, is_running=is_running)
         ports = port_info["ports"]
         security_headers = check_security_headers(domain)
         has_tls = bool(ports.get("443"))
@@ -347,7 +561,17 @@ def run_crypto_scans(assets: list[dict]) -> list[dict]:
         asset_type = classify_asset_type(domain, ports, is_api=is_api)
         target = asset.get("ip") or domain
         print("Before Nmap:", asset)
-        service_result = scan_service_versions(target) if target else {"services": [], "ip": None}
+        service_result = nmap_results.get(target) if target else None
+        if not isinstance(service_result, dict):
+            service_result = (
+                scan_service_versions(
+                    target,
+                    register_process=register_process,
+                    is_running=is_running,
+                )
+                if target
+                else {"services": [], "ip": None}
+            )
         services = service_result.get("services", [])
         discovered_ip = service_result.get("ip")
         if not asset.get("ip") and discovered_ip:
@@ -412,10 +636,14 @@ def run_crypto_scans(assets: list[dict]) -> list[dict]:
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_map = {}
         for asset in assets:
+            if is_running and not is_running():
+                break
             future = executor.submit(_scan_asset, asset)
             future_map[future] = asset.get("domain")
 
         for future in as_completed(future_map):
+            if is_running and not is_running():
+                break
             domain = future_map[future]
             try:
                 result = future.result()
@@ -441,191 +669,269 @@ def run_crypto_scans(assets: list[dict]) -> list[dict]:
 
 @app.post("/scan")
 def scan_domain(request: ScanRequest):
+    with _scan_state_lock:
+        if current_domain_scan.get("running"):
+            raise HTTPException(status_code=409, detail="A scan is already running.")
+        current_domain_scan["running"] = True
+        current_domain_scan["process"] = None
+
     logger.info("scan request for %s", request.domain)
-    assets, crtsh_certificates = discover_assets(request.domain, use_crtsh=request.use_crtsh)
-    crypto_results = run_crypto_scans(assets)
-    logger.debug("crypto scan results: %s", crypto_results)
+    try:
+        assets, crtsh_certificates = discover_assets(
+            request.domain,
+            use_crtsh=request.use_crtsh,
+            register_process=_set_scan_process,
+            is_running=_is_scan_running,
+        )
+        if not _is_scan_running():
+            response = {
+                "summary": {"total_assets": len(assets)},
+                "counts": {"domains": len(assets), "ssl": 0, "ips": len({a.get("ip") for a in assets if a.get("ip")})},
+                "inventory": {
+                    "domains": [asset["domain"] for asset in assets if asset.get("domain")],
+                    "ssl_enabled": [],
+                    "http_only": [],
+                    "ip_addresses": sorted({asset.get("ip") for asset in assets if asset.get("ip")}),
+                    "ports": [],
+                },
+                "risk": "Unknown",
+                "score": 0,
+                "rating": "N/A",
+                "quantum_status": "Unknown",
+                "classical_security": "Unknown",
+                "quantum_security": "Unknown",
+                "insights": ["Scan stopped by user."],
+                "assets": assets,
+                "cbom": [],
+                "stopped": True,
+            }
+            if request.use_crtsh:
+                response["crtsh_certificates"] = crtsh_certificates
+            save_scan(request.domain, response)
+            return response
 
-    domain_type_map = {
-        entry.get("domain"): (entry.get("type") or "server")
-        for entry in crypto_results
-        if entry.get("domain")
-    }
-    assets = [
-        {
-            **asset,
-            "type": domain_type_map.get(asset.get("domain")) or "server",
+        crypto_results = run_crypto_scans(
+            assets,
+            register_process=_set_scan_process,
+            is_running=_is_scan_running,
+        )
+        logger.debug("crypto scan results: %s", crypto_results)
+
+        domain_type_map = {
+            entry.get("domain"): (entry.get("type") or "server")
+            for entry in crypto_results
+            if entry.get("domain")
         }
-        for asset in assets
-    ]
+        assets = [
+            {
+                **asset,
+                "type": domain_type_map.get(asset.get("domain")) or "server",
+            }
+            for asset in assets
+        ]
 
-    cbom = generate_cbom(crypto_results)
-    cbom, risk = assess_pqc_risk(cbom)
+        if request.use_crtsh:
+            _apply_crtsh_intel_to_assets(assets, crtsh_certificates)
 
-    for entry in cbom:
-        entry.update(map_certificate_ui(entry.get("certificate_status", "UNREACHABLE")))
-        entry.update(map_tls_ui(entry.get("key_strength"), entry.get("tls_version")))
-        entry.update(map_quantum_ui(entry.get("quantum_vulnerable")))
-        entry.update(map_header_ui(entry))
-    rating_data = calculate_rating(cbom)
+        cbom = generate_cbom(crypto_results)
+        cbom, risk = assess_pqc_risk(cbom)
 
-    outdated_services_count = sum(1 for entry in cbom if entry.get("outdated_services"))
+        if request.use_crtsh:
+            _apply_crtsh_intel_to_cbom(cbom, crtsh_certificates)
 
-    summary = {
-        "total_assets": len(assets),
-        "https_enabled": sum(1 for entry in cbom if entry.get("ports", {}).get("443")),
-        "http_only": sum(
-            1
+        for entry in cbom:
+            entry.update(map_certificate_ui(entry.get("certificate_status", "UNREACHABLE")))
+            entry.update(map_tls_ui(entry.get("key_strength"), entry.get("tls_version")))
+            entry.update(map_quantum_ui(entry.get("quantum_vulnerable")))
+            entry.update(map_header_ui(entry))
+        rating_data = calculate_rating(cbom)
+
+        outdated_services_count = sum(1 for entry in cbom if entry.get("outdated_services"))
+
+        summary = {
+            "total_assets": len(assets),
+            "https_enabled": sum(1 for entry in cbom if entry.get("ports", {}).get("443")),
+            "http_only": sum(
+                1
+                for entry in cbom
+                if entry.get("ports", {}).get("80") and not entry.get("ports", {}).get("443")
+            ),
+            "quantum_vulnerable": sum(1 for entry in cbom if entry.get("quantum_vulnerable") is True),
+            "quantum_safe": sum(1 for entry in cbom if entry.get("quantum_vulnerable") is False),
+            "high_risk_assets": sum(1 for entry in cbom if entry.get("risk_level") == "High"),
+            "header_issues": sum(
+                1
+                for entry in cbom
+                if not all(entry.get("security_headers", {}).values())
+            ),
+            "unreachable_assets": sum(
+                1
+                for entry in cbom
+                if entry.get("certificate_status") == "UNREACHABLE"
+            ),
+            "expiring_soon": sum(
+                1
+                for entry in cbom
+                if 0 <= (entry.get("certificate", {}).get("expiry_days") or -1) < 30
+                ),
+            "outdated_services": outdated_services_count,
+        }
+
+        inventory_domains = [asset["domain"] for asset in assets if asset.get("domain")]
+        ssl_enabled_domains = [
+            entry["domain"]
+            for entry in cbom
+            if entry.get("ports", {}).get("443")
+        ]
+        http_only_domains = [
+            entry["domain"]
             for entry in cbom
             if entry.get("ports", {}).get("80") and not entry.get("ports", {}).get("443")
-        ),
-        "quantum_vulnerable": sum(1 for entry in cbom if entry.get("quantum_vulnerable") is True),
-        "quantum_safe": sum(1 for entry in cbom if entry.get("quantum_vulnerable") is False),
-        "high_risk_assets": sum(1 for entry in cbom if entry.get("risk_level") == "High"),
-        "header_issues": sum(
-            1
-            for entry in cbom
-            if not all(entry.get("security_headers", {}).values())
-        ),
-        "unreachable_assets": sum(
-            1
-            for entry in cbom
-            if entry.get("certificate_status") == "UNREACHABLE"
-        ),
-        "expiring_soon": sum(
-            1
-            for entry in cbom
-            if 0 <= (entry.get("certificate", {}).get("expiry_days") or -1) < 30
-            ),
-        "outdated_services": outdated_services_count,
-    }
-
-    inventory_domains = [asset["domain"] for asset in assets if asset.get("domain")]
-    ssl_enabled_domains = [
-        entry["domain"]
-        for entry in cbom
-        if entry.get("ports", {}).get("443")
-    ]
-    http_only_domains = [
-        entry["domain"]
-        for entry in cbom
-        if entry.get("ports", {}).get("80") and not entry.get("ports", {}).get("443")
-    ]
-    ip_addresses = sorted(
-        {asset.get("ip") for asset in assets if asset.get("ip")}
-    )
-    ports_set = set()
-    for entry in cbom:
-        for port_str, is_open in (entry.get("ports") or {}).items():
-            if is_open and port_str.isdigit():
-                ports_set.add(int(port_str))
-    inventory_ports = sorted(ports_set)
-
-    insights = []
-    if cbom:
-        tls_versions = [entry.get("tls_version") for entry in cbom]
-        if all(version == "TLSv1.3" for version in tls_versions):
-            insights.append("All assets use TLSv1.3 (strong classical security)")
-        elif any(version in {"TLSv1", "TLSv1.1"} for version in tls_versions):
-            insights.append("Some assets still support TLS versions older than 1.2")
-        else:
-            insights.append("All assets meet TLS 1.2+ requirements")
-
-        if summary["https_enabled"] == summary["total_assets"] and summary["total_assets"]:
-            insights.append("HTTPS is enabled across all assets")
-        elif summary["https_enabled"] == 0 and summary["total_assets"]:
-            insights.append("No HTTPS endpoints are available")
-
-        if summary["http_only"] > 0:
-            insights.append(f"{summary['http_only']} asset(s) expose HTTP without HTTPS")
-
-        if summary["quantum_vulnerable"] == summary["total_assets"] and summary["total_assets"]:
-            insights.append("All assets are quantum vulnerable")
-        elif summary["quantum_vulnerable"] > 0:
-            insights.append("Some assets remain quantum vulnerable")
-        else:
-            insights.append("No quantum-vulnerable assets detected")
-
-        security_headers = [entry.get("security_headers", {}) for entry in cbom]
-        total = len(security_headers)
-        missing_csp = sum(1 for headers in security_headers if not headers.get("csp"))
-        missing_hsts = sum(1 for headers in security_headers if not headers.get("hsts"))
-        missing_frame = sum(1 for headers in security_headers if not headers.get("x_frame_options"))
-
-        if missing_csp:
-            insights.append(f"CSP missing on {missing_csp}/{total} assets")
-        if missing_hsts:
-            insights.append(f"HSTS not enabled on {missing_hsts}/{total} assets")
-        if missing_frame:
-            insights.append(f"Clickjacking protection missing on {missing_frame}/{total} assets")
-
-        if all(entry.get("ports", {}).get("80") for entry in cbom):
-            insights.append("All assets expose HTTP (port 80), potential downgrade attack risk")
-
-        critical_certs = sum(
-            1
-            for entry in cbom
-            if 0 <= (entry.get("certificate", {}).get("expiry_days") or -1) < 15
+        ]
+        ip_addresses = sorted(
+            {asset.get("ip") for asset in assets if asset.get("ip")}
         )
-        expiring_soon = summary["expiring_soon"]
-        if expiring_soon:
-            insights.append(f"{expiring_soon} certificates expiring within 30 days")
-        if critical_certs:
-            insights.append(f"{critical_certs} certificates critically close to expiry")
+        ports_set = set()
+        for entry in cbom:
+            for port_str, is_open in (entry.get("ports") or {}).items():
+                if is_open and port_str.isdigit():
+                    ports_set.add(int(port_str))
+        inventory_ports = sorted(ports_set)
 
-        tls_missing = sum(
-            1
-            for entry in cbom
-            if entry.get("certificate_status") == "NO_TLS"
-        )
-        misconfigured = sum(
-            1
-            for entry in cbom
-            if entry.get("certificate_status") in {"UNREACHABLE", "NO_CERT"}
-        )
-        if tls_missing:
-            insights.append(f"{tls_missing} assets do not support TLS")
-        if misconfigured:
-            insights.append(f"{misconfigured} assets unreachable or TLS handshake failed")
+        insights = []
+        if cbom:
+            tls_versions = [entry.get("tls_version") for entry in cbom]
+            if all(version == "TLSv1.3" for version in tls_versions):
+                insights.append("All assets use TLSv1.3 (strong classical security)")
+            elif any(version in {"TLSv1", "TLSv1.1"} for version in tls_versions):
+                insights.append("Some assets still support TLS versions older than 1.2")
+            else:
+                insights.append("All assets meet TLS 1.2+ requirements")
 
-        if outdated_services_count:
-            insights.append(f"Outdated services detected on {outdated_services_count} assets")
+            if summary["https_enabled"] == summary["total_assets"] and summary["total_assets"]:
+                insights.append("HTTPS is enabled across all assets")
+            elif summary["https_enabled"] == 0 and summary["total_assets"]:
+                insights.append("No HTTPS endpoints are available")
 
-    counts = {
-        "domains": len(inventory_domains),
-        "ssl": len(ssl_enabled_domains),
-        "ips": len(ip_addresses),
-    }
+            if summary["http_only"] > 0:
+                insights.append(f"{summary['http_only']} asset(s) expose HTTP without HTTPS")
 
-    inventory = {
-        "domains": inventory_domains,
-        "ssl_enabled": ssl_enabled_domains,
-        "http_only": http_only_domains,
-        "ip_addresses": ip_addresses,
-        "ports": inventory_ports,
-    }
+            if summary["quantum_vulnerable"] == summary["total_assets"] and summary["total_assets"]:
+                insights.append("All assets are quantum vulnerable")
+            elif summary["quantum_vulnerable"] > 0:
+                insights.append("Some assets remain quantum vulnerable")
+            else:
+                insights.append("No quantum-vulnerable assets detected")
 
-    response = {
-        "summary": summary,
-        "counts": counts,
-        "inventory": inventory,
-        "risk": risk or "Low",
-        "score": rating_data["score"],
-        "rating": rating_data["rating"],
-        "quantum_status": rating_data["quantum_status"],
-        "classical_security": rating_data["classical_security"],
-        "quantum_security": rating_data["quantum_status"],
-        "insights": insights,
-        "assets": assets,
-        "cbom": cbom,
-    }
+            security_headers = [entry.get("security_headers", {}) for entry in cbom]
+            total = len(security_headers)
+            missing_csp = sum(1 for headers in security_headers if not headers.get("csp"))
+            missing_hsts = sum(1 for headers in security_headers if not headers.get("hsts"))
+            missing_frame = sum(1 for headers in security_headers if not headers.get("x_frame_options"))
 
-    if request.use_crtsh:
-        response["crtsh_certificates"] = crtsh_certificates
+            if missing_csp:
+                insights.append(f"CSP missing on {missing_csp}/{total} assets")
+            if missing_hsts:
+                insights.append(f"HSTS not enabled on {missing_hsts}/{total} assets")
+            if missing_frame:
+                insights.append(f"Clickjacking protection missing on {missing_frame}/{total} assets")
 
-    save_scan(request.domain, response)
+            if all(entry.get("ports", {}).get("80") for entry in cbom):
+                insights.append("All assets expose HTTP (port 80), potential downgrade attack risk")
 
-    return response
+            critical_certs = sum(
+                1
+                for entry in cbom
+                if 0 <= (entry.get("certificate", {}).get("expiry_days") or -1) < 15
+            )
+            expiring_soon = summary["expiring_soon"]
+            if expiring_soon:
+                insights.append(f"{expiring_soon} certificates expiring within 30 days")
+            if critical_certs:
+                insights.append(f"{critical_certs} certificates critically close to expiry")
+
+            tls_missing = sum(
+                1
+                for entry in cbom
+                if entry.get("certificate_status") == "NO_TLS"
+            )
+            misconfigured = sum(
+                1
+                for entry in cbom
+                if entry.get("certificate_status") in {"UNREACHABLE", "NO_CERT"}
+            )
+            if tls_missing:
+                insights.append(f"{tls_missing} assets do not support TLS")
+            if misconfigured:
+                insights.append(f"{misconfigured} assets unreachable or TLS handshake failed")
+
+            if outdated_services_count:
+                insights.append(f"Outdated services detected on {outdated_services_count} assets")
+
+        counts = {
+            "domains": len(inventory_domains),
+            "ssl": len(ssl_enabled_domains),
+            "ips": len(ip_addresses),
+        }
+
+        inventory = {
+            "domains": inventory_domains,
+            "ssl_enabled": ssl_enabled_domains,
+            "http_only": http_only_domains,
+            "ip_addresses": ip_addresses,
+            "ports": inventory_ports,
+        }
+
+        response = {
+            "summary": summary,
+            "counts": counts,
+            "inventory": inventory,
+            "risk": risk or "Low",
+            "score": rating_data["score"],
+            "rating": rating_data["rating"],
+            "quantum_status": rating_data["quantum_status"],
+            "classical_security": rating_data["classical_security"],
+            "quantum_security": rating_data["quantum_status"],
+            "insights": insights,
+            "assets": assets,
+            "cbom": cbom,
+        }
+
+        if request.use_crtsh:
+            response["crtsh_certificates"] = crtsh_certificates
+
+        save_scan(request.domain, response)
+
+        return response
+    finally:
+        _set_scan_process(None)
+        _set_scan_running(False)
+
+
+@app.post("/stop-scan")
+def stop_scan():
+    with _scan_state_lock:
+        running = bool(current_domain_scan.get("running"))
+        proc = current_domain_scan.get("process")
+        current_domain_scan["running"] = False
+
+    if not running:
+        return {"success": False, "message": "No scan running"}
+
+    terminated = False
+    if proc is not None:
+        try:
+            if proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                terminated = True
+        except Exception:
+            terminated = False
+
+    return {"success": True, "terminated_process": terminated, "message": "Stop signal sent"}
 
 
 @app.post("/api/reports/deliver")

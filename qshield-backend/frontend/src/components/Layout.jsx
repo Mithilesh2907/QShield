@@ -3,12 +3,12 @@ import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import Assistant from './Assistant';
 
-export default function Layout({ onScan, scanData, nucleiResults }) {
+export default function Layout({ onScan, onStopScan, isScanning, scanData, nucleiResults }) {
   return (
     <>
       <Sidebar />
       <main className="fixed top-0 right-0 left-64 bottom-0 flex flex-col overflow-y-auto bg-surface-dim tech-pattern">
-        <TopBar onScan={onScan} />
+        <TopBar onScan={onScan} onStopScan={onStopScan} isScanning={isScanning} />
         <div className="mt-16 p-8 space-y-8 max-w-[1600px] mx-auto w-full">
           <Outlet />
         </div>

@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Callable
 
 
 def _locate_nmap() -> list[str]:
@@ -26,16 +27,65 @@ def _parse_ports(output: str) -> dict:
     return ports
 
 
-def scan_ports(domain: str):
+def _run_command(
+    command: list[str],
+    timeout: int,
+    register_process: Callable[[subprocess.Popen | None], None] | None = None,
+    is_running: Callable[[], bool] | None = None,
+) -> subprocess.CompletedProcess[str] | None:
+    proc: subprocess.Popen[str] | None = None
+    try:
+        proc = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if register_process:
+            register_process(proc)
+
+        elapsed = 0.0
+        step = 0.2
+        while True:
+            if is_running and not is_running():
+                proc.terminate()
+                stdout, stderr = proc.communicate(timeout=2)
+                return subprocess.CompletedProcess(command, proc.returncode or 1, stdout, stderr)
+            try:
+                stdout, stderr = proc.communicate(timeout=step)
+                return subprocess.CompletedProcess(command, proc.returncode or 0, stdout, stderr)
+            except subprocess.TimeoutExpired:
+                elapsed += step
+                if elapsed >= timeout:
+                    proc.kill()
+                    stdout, stderr = proc.communicate()
+                    return subprocess.CompletedProcess(command, proc.returncode or 1, stdout, stderr)
+                continue
+    except OSError:
+        return None
+    finally:
+        if register_process:
+            register_process(None)
+
+
+def scan_ports(
+    domain: str,
+    register_process: Callable[[subprocess.Popen | None], None] | None = None,
+    is_running: Callable[[], bool] | None = None,
+):
     command = _locate_nmap() + ["-p", "80,443,8080,8443", "--open", domain]
     try:
-        result = subprocess.run(
+        result = _run_command(
             command,
-            capture_output=True,
-            text=True,
             timeout=10,
-            check=False,
+            register_process=register_process,
+            is_running=is_running,
         )
+        if result is None:
+            return {
+                "domain": domain,
+                "ports": {"80": False, "443": False, "8080": False, "8443": False},
+            }
 
         if result.returncode != 0:
             return {
@@ -97,7 +147,11 @@ def _parse_services_from_xml(xml_path: Path) -> tuple[list[dict], str | None]:
     return services, extracted_ip
 
 
-def scan_service_versions(target: str) -> dict:
+def scan_service_versions(
+    target: str,
+    register_process: Callable[[subprocess.Popen | None], None] | None = None,
+    is_running: Callable[[], bool] | None = None,
+) -> dict:
     if not target:
         return []
 
@@ -106,13 +160,14 @@ def scan_service_versions(target: str) -> dict:
     xml_path = Path(temp_file.name)
     command = _locate_nmap() + ["-sV", "-T4", "-oX", str(xml_path), target]
     try:
-        subprocess.run(
+        result = _run_command(
             command,
-            capture_output=True,
-            text=True,
             timeout=60,
-            check=False,
+            register_process=register_process,
+            is_running=is_running,
         )
+        if result is None:
+            return {"services": [], "ip": None}
         services, parsed_ip = _parse_services_from_xml(xml_path)
         return {"services": services, "ip": parsed_ip}
     except (subprocess.TimeoutExpired, OSError):
@@ -120,3 +175,14 @@ def scan_service_versions(target: str) -> dict:
     finally:
         if xml_path.exists():
             xml_path.unlink()
+
+
+def run_nmap_scan(
+    target: str,
+    register_process: Callable[[subprocess.Popen | None], None] | None = None,
+    is_running: Callable[[], bool] | None = None,
+) -> dict:
+    result = scan_service_versions(target, register_process=register_process, is_running=is_running)
+    if not isinstance(result, dict):
+        result = {"services": [], "ip": None}
+    return {"target": target, **result}

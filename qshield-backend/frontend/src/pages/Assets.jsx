@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
 
 const getExpiryDaysFromAsset = (asset) => {
   const days = asset?.certificate?.expiry_days;
@@ -37,8 +36,23 @@ const getTypeColorClass = (type) => {
   return 'bg-gray-200 text-gray-700';
 };
 
+const getExpiryTone = (status) => {
+  const normalized = (status || '').toLowerCase();
+  if (normalized.includes('expired')) return 'text-red-700 bg-red-50';
+  if (normalized.includes('expiring')) return 'text-amber-700 bg-amber-50';
+  if (normalized.includes('valid')) return 'text-green-700 bg-green-50';
+  return 'text-gray-600 bg-gray-100';
+};
+
+const getCertRiskTone = (risk) => {
+  const normalized = (risk || '').toLowerCase();
+  if (normalized === 'high') return 'text-red-700 bg-red-50';
+  if (normalized === 'medium') return 'text-amber-700 bg-amber-50';
+  if (normalized === 'low') return 'text-green-700 bg-green-50';
+  return 'text-gray-600 bg-gray-100';
+};
+
 export default function Assets({ scanData, isLoading, error }) {
-  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [riskFilter, setRiskFilter] = useState('All');
@@ -75,12 +89,35 @@ export default function Assets({ scanData, isLoading, error }) {
     );
   }
 
+  const crtshAssetsByDomain = useMemo(() => {
+    const map = new Map();
+    (scanData.assets || []).forEach((asset) => {
+      const domain = (asset?.domain || '').toLowerCase();
+      if (domain) {
+        map.set(domain, asset);
+      }
+    });
+    return map;
+  }, [scanData.assets]);
+
   const sourceAssets = Array.isArray(scanData.cbom) && scanData.cbom.length ? scanData.cbom : scanData.assets || [];
-  const assets = sourceAssets.map((asset) => ({
-    ...asset,
-    type: getMappedType(asset?.type || 'Unknown'),
-    services: asset?.services || [],
-  }));
+  const assets = sourceAssets.map((asset) => {
+    const enrichment = crtshAssetsByDomain.get((asset?.domain || '').toLowerCase()) || {};
+    return {
+      ...asset,
+      issuer: asset?.issuer ?? enrichment?.issuer,
+      expiry_date: asset?.expiry_date ?? enrichment?.expiry_date,
+      days_remaining: asset?.days_remaining ?? enrichment?.days_remaining,
+      cert_count: asset?.cert_count ?? enrichment?.cert_count,
+      san_count: asset?.san_count ?? enrichment?.san_count,
+      expiry_status: asset?.expiry_status ?? enrichment?.expiry_status,
+      cert_risk: asset?.cert_risk ?? enrichment?.cert_risk,
+      cert_valid_from: asset?.cert_valid_from ?? enrichment?.cert_valid_from,
+      cert_valid_to: asset?.cert_valid_to ?? enrichment?.cert_valid_to,
+      type: getMappedType(asset?.type || 'Unknown'),
+      services: asset?.services || [],
+    };
+  });
 
   const typeGroups = useMemo(() => {
     const groups = {};
@@ -214,6 +251,10 @@ export default function Assets({ scanData, isLoading, error }) {
                 <th className="p-4 text-[11px] font-bold tracking-[0.1em] text-[#721c24] uppercase whitespace-nowrap bg-transparent">TLS</th>
                 <th className="p-4 text-[11px] font-bold tracking-[0.1em] text-[#721c24] uppercase whitespace-nowrap bg-transparent">Key</th>
                 <th className="p-4 text-[11px] font-bold tracking-[0.1em] text-[#721c24] uppercase whitespace-nowrap bg-transparent">Issuer CA</th>
+                <th className="p-4 text-[11px] font-bold tracking-[0.1em] text-[#721c24] uppercase whitespace-nowrap bg-transparent">Expiry</th>
+                <th className="p-4 text-[11px] font-bold tracking-[0.1em] text-[#721c24] uppercase whitespace-nowrap bg-transparent">SANs</th>
+                <th className="p-4 text-[11px] font-bold tracking-[0.1em] text-[#721c24] uppercase whitespace-nowrap bg-transparent">Cert History</th>
+                <th className="p-4 text-[11px] font-bold tracking-[0.1em] text-[#721c24] uppercase whitespace-nowrap bg-transparent">Cert Risk</th>
                 <th className="p-4 text-[11px] font-bold tracking-[0.1em] text-[#721c24] uppercase whitespace-nowrap bg-transparent">Risk</th>
               </tr>
             </thead>
@@ -259,6 +300,36 @@ export default function Assets({ scanData, isLoading, error }) {
                       <td className="p-4 text-[13px] font-medium text-gray-600 truncate max-w-[150px]" title={asset.certificate?.issuer_ca || ''}>
                         {asset.certificate?.issuer_ca || <span className="text-gray-300">--</span>}
                       </td>
+                      <td
+                        className="p-4 text-[13px] font-medium text-gray-700 whitespace-nowrap"
+                        title={asset.issuer ? `Issuer: ${asset.issuer}\nValid from: ${asset.cert_valid_from || '--'}\nValid to: ${asset.cert_valid_to || '--'}` : ''}
+                      >
+                        {asset.expiry_status ? (
+                          <span className={`px-2 py-0.5 rounded text-[12px] font-bold ${getExpiryTone(asset.expiry_status)}`}>
+                            {asset.expiry_status}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">--</span>
+                        )}
+                        {asset.expiry_date ? (
+                          <div className="text-[11px] text-gray-500 mt-1">{asset.expiry_date}</div>
+                        ) : null}
+                      </td>
+                      <td className="p-4 text-[14px] font-bold text-gray-700 whitespace-nowrap">
+                        {typeof asset.san_count === 'number' ? asset.san_count : <span className="text-gray-300">--</span>}
+                      </td>
+                      <td className="p-4 text-[14px] font-bold text-gray-700 whitespace-nowrap">
+                        {typeof asset.cert_count === 'number' ? asset.cert_count : <span className="text-gray-300">--</span>}
+                      </td>
+                      <td className="p-4 text-[14px] whitespace-nowrap">
+                        {asset.cert_risk ? (
+                          <span className={`px-2 py-0.5 rounded text-[12px] font-bold ${getCertRiskTone(asset.cert_risk)}`}>
+                            {asset.cert_risk}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">--</span>
+                        )}
+                      </td>
                       <td className="p-4 text-[14px] whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-bold rounded-full ${
                           asset.risk_level === 'Low' ? 'bg-green-100 text-green-800' : 
@@ -274,7 +345,7 @@ export default function Assets({ scanData, isLoading, error }) {
                 })
               ) : (
                 <tr>
-                  <td colSpan="9" className="p-12 text-center">
+                  <td colSpan="13" className="p-12 text-center">
                     <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">search_off</span>
                     <p className="text-gray-500 font-medium">No assets matching your filters</p>
                   </td>

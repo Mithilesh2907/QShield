@@ -2,9 +2,10 @@ import logging
 import re
 import socket
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Callable, Iterable, List, Tuple
 
 try:
     import dns
@@ -22,6 +23,47 @@ logger = logging.getLogger(__name__)
 
 
 _DOMAIN_ALLOWED_RE = re.compile(r"^[A-Za-z0-9.-]+$")
+
+
+def _run_command(
+    command: list[str],
+    timeout: int,
+    register_process: Callable[[subprocess.Popen | None], None] | None = None,
+    is_running: Callable[[], bool] | None = None,
+) -> subprocess.CompletedProcess[str] | None:
+    proc: subprocess.Popen[str] | None = None
+    try:
+        proc = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if register_process:
+            register_process(proc)
+
+        elapsed = 0.0
+        step = 0.2
+        while True:
+            if is_running and not is_running():
+                proc.terminate()
+                stdout, stderr = proc.communicate(timeout=2)
+                return subprocess.CompletedProcess(command, proc.returncode or 1, stdout, stderr)
+            try:
+                stdout, stderr = proc.communicate(timeout=step)
+                return subprocess.CompletedProcess(command, proc.returncode or 0, stdout, stderr)
+            except subprocess.TimeoutExpired:
+                elapsed += step
+                if elapsed >= timeout:
+                    proc.kill()
+                    stdout, stderr = proc.communicate()
+                    return subprocess.CompletedProcess(command, proc.returncode or 1, stdout, stderr)
+                continue
+    except OSError:
+        return None
+    finally:
+        if register_process:
+            register_process(None)
 
 
 def _is_valid_domain(domain: str) -> bool:
@@ -104,7 +146,11 @@ def _locate_executable(name: str, fallback: str | None = None) -> List[str]:
     return command
 
 
-def _run_subfinder(domain: str) -> Iterable[str]:
+def _run_subfinder(
+    domain: str,
+    register_process: Callable[[subprocess.Popen | None], None] | None = None,
+    is_running: Callable[[], bool] | None = None,
+) -> Iterable[str]:
     commands = [
         ["subfinder", "-d", domain, "-silent"],
         _locate_executable("subfinder", fallback="subfinder.exe") + ["-d", domain, "-silent"],
@@ -112,13 +158,14 @@ def _run_subfinder(domain: str) -> Iterable[str]:
 
     for command in commands:
         try:
-            result = subprocess.run(
+            result = _run_command(
                 command,
-                capture_output=True,
-                text=True,
                 timeout=60,
-                check=False,
+                register_process=register_process,
+                is_running=is_running,
             )
+            if result is None:
+                continue
 
             if result.returncode != 0:
                 logger.warning("Subfinder failed: %s", (result.stderr or "").strip())
@@ -140,6 +187,11 @@ def _run_subfinder(domain: str) -> Iterable[str]:
 
 
 def get_crtsh_subdomains(domain: str) -> List[str]:
+    entries = _fetch_crtsh_entries(domain)
+    return _extract_crtsh_subdomains(entries, clean_domain(domain))
+
+
+def _fetch_crtsh_entries(domain: str) -> List[dict]:
     domain_clean = clean_domain(domain)
     if not domain_clean:
         return []
@@ -155,33 +207,38 @@ def get_crtsh_subdomains(domain: str) -> List[str]:
             logger.warning("crt.sh returned %s", resp.status_code)
             return []
 
-        try:
-            payload = resp.json()
-        except ValueError:
-            return []
-
-        results: set[str] = set()
+        payload = resp.json()
         if not isinstance(payload, list):
             return []
 
-        for entry in payload:
-            if not isinstance(entry, dict):
-                continue
-            name_value = entry.get("name_value")
-            if not isinstance(name_value, str):
-                continue
-            for raw in name_value.splitlines():
-                candidate = (raw or "").strip()
-                if not candidate or candidate.startswith("*."):
-                    continue
-                cleaned = clean_domain(candidate)
-                if cleaned and _is_valid_domain(cleaned):
-                    results.add(cleaned)
-
-        return list(results)
-
+        return [entry for entry in payload if isinstance(entry, dict)]
     except Exception:
+        # Fail safe for timeout/5xx/JSON errors; never break discovery pipeline.
         return []
+
+
+def _extract_crtsh_subdomains(data: List[dict], domain: str) -> List[str]:
+    if not domain:
+        return []
+
+    domain = domain.strip().lower()
+    subdomains: List[str] = []
+    for entry in data:
+        names = entry.get("name_value", "").split("\n")
+
+        for name in names:
+            name = name.strip().lower()
+
+            if name.startswith("*."):
+                name = name[2:]
+
+            if domain in name:
+                cleaned = clean_domain(name)
+                if cleaned and _is_valid_domain(cleaned):
+                    subdomains.append(cleaned)
+
+    subdomains = list(set(subdomains))
+    return subdomains
 
 
 def _parse_crtsh_datetime(value: object) -> datetime | None:
@@ -208,30 +265,12 @@ def _parse_crtsh_datetime(value: object) -> datetime | None:
         return None
 
 
-def get_crtsh_cert_info(domain: str) -> List[dict]:
-    domain_clean = clean_domain(domain)
-    if not domain_clean:
+def get_crtsh_cert_info(domain: str, entries: List[dict] | None = None) -> List[dict]:
+    payload = entries if entries is not None else _fetch_crtsh_entries(domain)
+    if not payload:
         return []
 
-    if requests is None:
-        logger.warning("requests not installed; crt.sh disabled")
-        return []
-
-    url = f"https://crt.sh/?q=%25.{domain_clean}&output=json"
     try:
-        resp = requests.get(url, timeout=10)
-        if resp.status_code != 200:
-            logger.warning("crt.sh returned %s", resp.status_code)
-            return []
-
-        try:
-            payload = resp.json()
-        except ValueError:
-            return []
-
-        if not isinstance(payload, list):
-            return []
-
         now = datetime.now(timezone.utc)
         by_serial: dict[str, dict] = {}
 
@@ -308,7 +347,12 @@ def _read_lines(path: Path) -> List[str]:
     return [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def _run_httpx(domains_path: Path, http_live_path: Path) -> Tuple[set[str], bool]:
+def _run_httpx(
+    domains_path: Path,
+    http_live_path: Path,
+    register_process: Callable[[subprocess.Popen | None], None] | None = None,
+    is_running: Callable[[], bool] | None = None,
+) -> Tuple[set[str], bool]:
     cmd = _locate_executable("httpx", fallback="httpx.exe") + [
         "-l",
         str(domains_path),
@@ -318,13 +362,15 @@ def _run_httpx(domains_path: Path, http_live_path: Path) -> Tuple[set[str], bool
     ]
 
     try:
-        result = subprocess.run(
+        result = _run_command(
             cmd,
-            capture_output=True,
-            text=True,
             timeout=120,
-            check=False,
+            register_process=register_process,
+            is_running=is_running,
         )
+        if result is None:
+            _write_lines(http_live_path, [])
+            return set(), False
 
         live: List[str] = []
         for line in result.stdout.splitlines():
@@ -356,8 +402,10 @@ def _run_dns(domains_path: Path, dns_live_path: Path) -> dict[str, str | None]:
     resolved: dict[str, str | None] = {}
     dns_live: List[str] = []
 
-    for domain in domains:
-        ip_address = _resolve_ip(domain)
+    with ThreadPoolExecutor(max_workers=50) as executor:
+        ip_results = list(executor.map(_resolve_ip, domains))
+
+    for domain, ip_address in zip(domains, ip_results, strict=False):
         resolved[domain] = ip_address
         if ip_address is not None:
             dns_live.append(domain)
@@ -366,16 +414,31 @@ def _run_dns(domains_path: Path, dns_live_path: Path) -> dict[str, str | None]:
     return resolved
 
 
-def discover_assets(domain: str, use_crtsh: bool = False) -> tuple[list[dict], list[dict]]:
-    subfinder_domains = list(_run_subfinder(domain))
-    print(f"Subfinder: {len(subfinder_domains)}")
+def discover_assets(
+    domain: str,
+    use_crtsh: bool = False,
+    register_process: Callable[[subprocess.Popen | None], None] | None = None,
+    is_running: Callable[[], bool] | None = None,
+) -> tuple[list[dict], list[dict]]:
+    if is_running and not is_running():
+        return [], []
 
     if use_crtsh:
-        crtsh_domains = get_crtsh_subdomains(domain)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_subfinder = executor.submit(_run_subfinder, domain, register_process, is_running)
+            future_crtsh_entries = executor.submit(_fetch_crtsh_entries, domain)
+            subfinder_domains = list(future_subfinder.result() or [])
+            crtsh_entries = list(future_crtsh_entries.result() or [])
+
+        crtsh_domains = _extract_crtsh_subdomains(crtsh_entries, clean_domain(domain))
+        cert_info = get_crtsh_cert_info(domain, entries=crtsh_entries)
+
+        print(f"Subfinder: {len(subfinder_domains)}")
         print(f"crt.sh: {len(crtsh_domains)}")
-        cert_info = get_crtsh_cert_info(domain)
         print(f"crt.sh certs: {len(cert_info)}")
     else:
+        subfinder_domains = list(_run_subfinder(domain, register_process, is_running))
+        print(f"Subfinder: {len(subfinder_domains)}")
         crtsh_domains = []
         cert_info = []
 
@@ -403,11 +466,22 @@ def discover_assets(domain: str, use_crtsh: bool = False) -> tuple[list[dict], l
     _write_lines(domains_path, subdomains)
     print(f"Total discovered: {len(subdomains)}")
 
+    if is_running and not is_running():
+        return [], cert_info
+
     print("HTTPX input count:", len(_read_lines(domains_path)))
-    http_live, httpx_success = _run_httpx(domains_path, http_live_path)
+    http_live, httpx_success = _run_httpx(
+        domains_path,
+        http_live_path,
+        register_process=register_process,
+        is_running=is_running,
+    )
     if not httpx_success:
         print("HTTPX failed \u2014 not using fallback")
     print("HTTPX output count:", len(http_live))
+
+    if is_running and not is_running():
+        return [], cert_info
 
     resolved_map = _run_dns(domains_path, dns_live_path)
 
@@ -418,6 +492,8 @@ def discover_assets(domain: str, use_crtsh: bool = False) -> tuple[list[dict], l
     domains = _read_lines(domains_path)
     print(f"Processing domains: {len(domains)}")
     for candidate in domains:
+        if is_running and not is_running():
+            break
         ip_address = resolved_map.get(candidate)
         print(f"{candidate} -> {ip_address}")
         live_httpx = candidate in http_live

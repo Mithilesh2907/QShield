@@ -20,6 +20,7 @@ import { AuthProvider } from './context/AuthContext';
 export default function App() {
   const [scanData, setScanData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState(null);
   const [nucleiResults, setNucleiResults] = useState([]);
   const nucleiStorageKey = 'nucleiResults';
@@ -59,6 +60,7 @@ export default function App() {
 
   const handleScan = async (domain, options = {}) => {
     setIsLoading(true);
+    setIsScanning(true);
     setError(null);
     try {
       const use_crtsh = Boolean(options.use_crtsh);
@@ -82,6 +84,18 @@ export default function App() {
       setError(err.message);
     } finally {
       setIsLoading(false);
+      setIsScanning(false);
+    }
+  };
+
+  const stopScan = async () => {
+    try {
+      await fetch('/stop-scan', { method: 'POST' });
+    } catch (err) {
+      console.error('Failed to stop scan:', err);
+    } finally {
+      setIsScanning(false);
+      setIsLoading(false);
     }
   };
 
@@ -93,7 +107,18 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
 
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Layout onScan={handleScan} scanData={scanData} nucleiResults={nucleiResults} />}>
+            <Route
+              path="/"
+              element={
+                <Layout
+                  onScan={handleScan}
+                  onStopScan={stopScan}
+                  isScanning={isScanning}
+                  scanData={scanData}
+                  nucleiResults={nucleiResults}
+                />
+              }
+            >
               <Route index element={<Dashboard scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="assets" element={<Assets scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="asset-inventory" element={<AssetInventory scanData={scanData} isLoading={isLoading} error={error} />} />

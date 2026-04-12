@@ -14,7 +14,7 @@ const sanitizeDomain = (value) => {
 
 const isValidDomain = (value) => domainRegex.test(value) || ipRegex.test(value);
 
-export default function TopBar({ onScan }) {
+export default function TopBar({ onScan, onStopScan, isScanning = false }) {
   const [domain, setDomain] = useState('');
   const [inputError, setInputError] = useState('');
   const [useCrtsh, setUseCrtsh] = useState(false);
@@ -34,10 +34,22 @@ export default function TopBar({ onScan }) {
     onScan(sanitized, { use_crtsh: useCrtsh });
   };
 
+  const stopScan = async () => {
+    try {
+      await onStopScan?.();
+    } catch {
+      // no-op
+    }
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSubmit();
+      if (isScanning) {
+        stopScan();
+      } else {
+        handleSubmit();
+      }
     }
   };
 
@@ -76,12 +88,21 @@ export default function TopBar({ onScan }) {
           />
           crt.sh
         </label>
-        <button
-          className="px-4 py-1.5 rounded-full bg-primary text-white font-bold text-sm hover:bg-primary-variant hover:shadow-[0_4px_12px_rgba(181,10,46,0.2)] transition-all"
-          onClick={handleSubmit}
-        >
-          Scan
-        </button>
+        {!isScanning ? (
+          <button
+            className="px-4 py-1.5 rounded-full bg-primary text-white font-bold text-sm hover:bg-primary-variant hover:shadow-[0_4px_12px_rgba(181,10,46,0.2)] transition-all"
+            onClick={handleSubmit}
+          >
+            RUN
+          </button>
+        ) : (
+          <button
+            className="px-4 py-1.5 rounded-full bg-red-600 text-white font-bold text-sm hover:bg-red-700 hover:shadow-[0_4px_12px_rgba(220,38,38,0.25)] transition-all"
+            onClick={stopScan}
+          >
+            STOP
+          </button>
+        )}
         <div className="flex items-center gap-3 text-on-surface-variant">
           <button className="material-symbols-outlined hover:text-secondary transition-colors">notifications</button>
           <button className="material-symbols-outlined hover:text-secondary transition-colors">help_outline</button>
