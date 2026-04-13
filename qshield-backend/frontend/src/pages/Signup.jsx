@@ -7,24 +7,24 @@ const TopoBg = () => (
   <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
     <defs>
       <pattern id="topo2" x="0" y="0" width="600" height="400" patternUnits="userSpaceOnUse">
-        <path d="M-50 30C50 10,150 50,250 30C350 10,450 50,650 30" fill="none" stroke="rgba(181,10,46,.06)" strokeWidth="1.2"/>
-        <path d="M-50 67C30 47,130 82,230 62C330 42,430 77,650 67" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1"/>
-        <path d="M-50 104C70 79,170 114,270 94C370 74,470 109,650 104" fill="none" stroke="rgba(250,188,10,.07)" strokeWidth="1"/>
-        <path d="M-50 142C40 117,140 152,240 132C340 112,440 147,650 142" fill="none" stroke="rgba(181,10,46,.05)" strokeWidth="1"/>
-        <path d="M-50 180C60 155,160 190,260 170C360 150,460 185,650 180" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1.2"/>
-        <path d="M-50 218C50 193,150 228,250 208C350 188,450 223,650 218" fill="none" stroke="rgba(250,188,10,.06)" strokeWidth="1"/>
-        <path d="M-50 256C70 231,170 266,270 246C370 226,470 261,650 256" fill="none" stroke="rgba(181,10,46,.05)" strokeWidth="1"/>
-        <path d="M-50 294C40 269,140 304,240 284C340 264,440 299,650 294" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1"/>
-        <path d="M-50 331C60 306,160 341,260 321C360 301,460 336,650 331" fill="none" stroke="rgba(250,188,10,.07)" strokeWidth="1.2"/>
-        <ellipse cx="462" cy="112" rx="90" ry="56" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1"/>
-        <ellipse cx="462" cy="112" rx="58" ry="36" fill="none" stroke="rgba(250,188,10,.07)" strokeWidth="1"/>
-        <ellipse cx="462" cy="112" rx="30" ry="19" fill="none" stroke="rgba(181,10,46,.07)" strokeWidth="1"/>
-        <ellipse cx="155" cy="300" rx="76" ry="48" fill="none" stroke="rgba(250,188,10,.06)" strokeWidth="1"/>
-        <ellipse cx="155" cy="300" rx="48" ry="30" fill="none" stroke="rgba(181,10,46,.055)" strokeWidth="1"/>
-        <ellipse cx="155" cy="300" rx="24" ry="15" fill="none" stroke="rgba(250,188,10,.09)" strokeWidth="1"/>
+        <path d="M-50 30C50 10,150 50,250 30C350 10,450 50,650 30" fill="none" stroke="rgba(181,10,46,.06)" strokeWidth="1.2" />
+        <path d="M-50 67C30 47,130 82,230 62C330 42,430 77,650 67" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1" />
+        <path d="M-50 104C70 79,170 114,270 94C370 74,470 109,650 104" fill="none" stroke="rgba(250,188,10,.07)" strokeWidth="1" />
+        <path d="M-50 142C40 117,140 152,240 132C340 112,440 147,650 142" fill="none" stroke="rgba(181,10,46,.05)" strokeWidth="1" />
+        <path d="M-50 180C60 155,160 190,260 170C360 150,460 185,650 180" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1.2" />
+        <path d="M-50 218C50 193,150 228,250 208C350 188,450 223,650 218" fill="none" stroke="rgba(250,188,10,.06)" strokeWidth="1" />
+        <path d="M-50 256C70 231,170 266,270 246C370 226,470 261,650 256" fill="none" stroke="rgba(181,10,46,.05)" strokeWidth="1" />
+        <path d="M-50 294C40 269,140 304,240 284C340 264,440 299,650 294" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1" />
+        <path d="M-50 331C60 306,160 341,260 321C360 301,460 336,650 331" fill="none" stroke="rgba(250,188,10,.07)" strokeWidth="1.2" />
+        <ellipse cx="462" cy="112" rx="90" ry="56" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1" />
+        <ellipse cx="462" cy="112" rx="58" ry="36" fill="none" stroke="rgba(250,188,10,.07)" strokeWidth="1" />
+        <ellipse cx="462" cy="112" rx="30" ry="19" fill="none" stroke="rgba(181,10,46,.07)" strokeWidth="1" />
+        <ellipse cx="155" cy="300" rx="76" ry="48" fill="none" stroke="rgba(250,188,10,.06)" strokeWidth="1" />
+        <ellipse cx="155" cy="300" rx="48" ry="30" fill="none" stroke="rgba(181,10,46,.055)" strokeWidth="1" />
+        <ellipse cx="155" cy="300" rx="24" ry="15" fill="none" stroke="rgba(250,188,10,.09)" strokeWidth="1" />
       </pattern>
     </defs>
-    <rect width="100%" height="100%" fill="url(#topo2)"/>
+    <rect width="100%" height="100%" fill="url(#topo2)" />
   </svg>
 );
 
@@ -102,7 +102,7 @@ export default function Signup() {
           body: new URLSearchParams({ username: email, password }),
         });
         const loginData = await loginRes.json();
-        login(loginData.access_token);
+        login(loginData.access_token, loginData.refresh_token);
         navigate('/');
       }
     } catch (err) {
@@ -160,9 +160,9 @@ export default function Signup() {
           body: JSON.stringify({ email, code: otpCode }),
         });
         const verData = await verRes.json();
-        login(verData.access_token);
+        login(verData.access_token, verData.refresh_token);
       } else {
-        login(loginData.access_token);
+        login(loginData.access_token, loginData.refresh_token);
       }
       navigate('/');
     } catch (err) {
@@ -182,7 +182,7 @@ export default function Signup() {
         body: new URLSearchParams({ username: email, password }),
       });
       const loginData = await loginRes.json();
-      login(loginData.access_token);
+      login(loginData.access_token, loginData.refresh_token);
       navigate('/');
     } catch {
       navigate('/login');

@@ -110,7 +110,7 @@ export default function Login() {
         setPendingEmail(email);
         setStep('2fa');
       } else {
-        login(data.access_token);
+        login(data.access_token, data.refresh_token);
         navigate('/');
       }
     } catch (err) {
@@ -134,9 +134,8 @@ export default function Login() {
         throw new Error(d.detail || 'Invalid 2FA code');
       }
       const data = await response.json();
-      login(data.access_token);
-      navigate('/');
-    } catch (err) {
+      login(data.access_token, data.refresh_token);
+      navigate('/');    } catch (err) {
       setError(err.message);
       setOtpCode('');
     } finally {
