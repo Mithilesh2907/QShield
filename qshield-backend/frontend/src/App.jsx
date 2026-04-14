@@ -12,8 +12,6 @@ import Settings from './pages/Settings';
 import VulnerabilityScan from './pages/VulnerabilityScan';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import TwoFAVerify from './pages/TwoFAVerify';
-import TwoFASetup from './pages/TwoFASetup';
 import CBOM from './pages/CBOM';
 import CyberRating from './pages/CyberRating';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -107,7 +105,6 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/2fa-verify" element={<TwoFAVerify />} />
 
           <Route element={<ProtectedRoute />}>
             <Route
@@ -134,7 +131,6 @@ export default function App() {
               <Route path="cbom" element={<CBOM scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="cyber-rating" element={<CyberRating scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="settings" element={<Settings />} />
-              <Route path="2fa-setup" element={<TwoFASetup />} />
             </Route>
           </Route>
         </Routes>

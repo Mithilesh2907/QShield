@@ -1,287 +1,400 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
+
+/* ── Topographic SVG background (same as Login) ── */
+const TopoBg = () => (
+  <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <pattern id="topo2" x="0" y="0" width="600" height="400" patternUnits="userSpaceOnUse">
+        <path d="M-50 30C50 10,150 50,250 30C350 10,450 50,650 30" fill="none" stroke="rgba(181,10,46,.06)" strokeWidth="1.2" />
+        <path d="M-50 67C30 47,130 82,230 62C330 42,430 77,650 67" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1" />
+        <path d="M-50 104C70 79,170 114,270 94C370 74,470 109,650 104" fill="none" stroke="rgba(250,188,10,.07)" strokeWidth="1" />
+        <path d="M-50 142C40 117,140 152,240 132C340 112,440 147,650 142" fill="none" stroke="rgba(181,10,46,.05)" strokeWidth="1" />
+        <path d="M-50 180C60 155,160 190,260 170C360 150,460 185,650 180" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1.2" />
+        <path d="M-50 218C50 193,150 228,250 208C350 188,450 223,650 218" fill="none" stroke="rgba(250,188,10,.06)" strokeWidth="1" />
+        <path d="M-50 256C70 231,170 266,270 246C370 226,470 261,650 256" fill="none" stroke="rgba(181,10,46,.05)" strokeWidth="1" />
+        <path d="M-50 294C40 269,140 304,240 284C340 264,440 299,650 294" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1" />
+        <path d="M-50 331C60 306,160 341,260 321C360 301,460 336,650 331" fill="none" stroke="rgba(250,188,10,.07)" strokeWidth="1.2" />
+        <ellipse cx="462" cy="112" rx="90" ry="56" fill="none" stroke="rgba(181,10,46,.04)" strokeWidth="1" />
+        <ellipse cx="462" cy="112" rx="58" ry="36" fill="none" stroke="rgba(250,188,10,.07)" strokeWidth="1" />
+        <ellipse cx="462" cy="112" rx="30" ry="19" fill="none" stroke="rgba(181,10,46,.07)" strokeWidth="1" />
+        <ellipse cx="155" cy="300" rx="76" ry="48" fill="none" stroke="rgba(250,188,10,.06)" strokeWidth="1" />
+        <ellipse cx="155" cy="300" rx="48" ry="30" fill="none" stroke="rgba(181,10,46,.055)" strokeWidth="1" />
+        <ellipse cx="155" cy="300" rx="24" ry="15" fill="none" stroke="rgba(250,188,10,.09)" strokeWidth="1" />
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#topo2)" />
+  </svg>
+);
+
+const InputField = ({ label, type = 'text', value, onChange, placeholder, icon, required }) => (
+  <div>
+    <label className="block text-[10px] font-black text-[#594141] uppercase tracking-[0.18em] mb-1.5">{label}</label>
+    <div className="relative">
+      {icon && (
+        <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[18px] text-[#8d7070] pointer-events-none">{icon}</span>
+      )}
+      <input
+        type={type}
+        required={required}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`w-full bg-white/70 border border-[#e1bebe] ${icon ? 'pl-10' : 'pl-4'} pr-4 py-3 text-[#1d1b19] text-sm rounded-xl focus:outline-none focus:border-[#B50A2E] focus:ring-2 focus:ring-[#B50A2E]/15 focus:bg-white transition-all duration-200 placeholder:text-[#b89898]`}
+      />
+    </div>
+  </div>
+);
+
+const PrimaryBtn = ({ children, onClick, disabled, type = 'button', loading }) => (
+  <button
+    type={type}
+    onClick={onClick}
+    disabled={disabled || loading}
+    className="w-full text-white font-black py-3 rounded-xl uppercase text-xs tracking-widest shadow-lg shadow-[#B50A2E]/25 hover:shadow-[#B50A2E]/40 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+    style={{ background: 'linear-gradient(135deg, #C0122F 0%, #8A0520 100%)' }}
+  >
+    {loading && <span className="material-symbols-outlined animate-spin text-[18px]">autorenew</span>}
+    {children}
+  </button>
+);
 
 export default function Signup() {
+  const [step, setStep] = useState('form');         // 'form' | 'setup2fa' | 'confirm2fa'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [errors, setErrors] = useState({});
-  const [apiError, setApiError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [confirmPw, setConfirmPw] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [qrData, setQrData] = useState(null);       // QR code data URL
+  const [totpSecret, setTotpSecret] = useState(''); // backup secret key
+  const [otpCode, setOtpCode] = useState('');
+  const [enable2FA, setEnable2FA] = useState(true);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const validateEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-
-  const getPasswordStrength = (pwd) => {
-    let score = 0;
-    if (pwd.length >= 8) score++;
-    if (/[A-Z]/.test(pwd)) score++;
-    if (/[0-9]/.test(pwd)) score++;
-    if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    return score;
-  };
-
-  const validate = () => {
-    const newErrors = {};
-    if (!validateEmail(email)) {
-      newErrors.email = 'Please enter a valid email address.';
-    }
-    if (getPasswordStrength(password) < 3) {
-      newErrors.password =
-        'Password must be at least 8 characters and include uppercase, a number, and a symbol.';
-    }
-    if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match.';
-    }
-    return newErrors;
-  };
-
   const handleSignup = async (e) => {
     e.preventDefault();
-    setApiError(null);
-
-    const validationErrors = validate();
-    setErrors(validationErrors);
-    if (Object.keys(validationErrors).length > 0) return;
-
-    setIsLoading(true);
+    setError(null);
+    if (password !== confirmPw) { setError('Passwords do not match'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    setLoading(true);
     try {
-      // Step 1: Register
-      const response = await fetch('http://localhost:8000/auth/register', {
+      const res = await fetch('http://localhost:8000/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Registration failed. Please try again.');
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.detail || 'Registration failed');
       }
+      // If user wants 2FA, go to setup
+      if (enable2FA) {
+        await initiate2FASetup();
+      } else {
+        // Login directly
+        const loginRes = await fetch('http://localhost:8000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ username: email, password }),
+        });
+        const loginData = await loginRes.json();
+        login(loginData.access_token, loginData.refresh_token);
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Step 2: Auto-login
-      const loginResponse = await fetch('http://localhost:8000/auth/login', {
+  const initiate2FASetup = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:8000/auth/2fa/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: '' }),
+      });
+      if (!res.ok) throw new Error('Failed to generate 2FA secret');
+      const data = await res.json();
+      setQrData(data.qr);
+      setTotpSecret(data.secret);
+      setStep('setup2fa');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirm2FA = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:8000/auth/2fa/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: otpCode }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.detail || 'Invalid code');
+      }
+      // 2FA confirmed — now login
+      const loginRes = await fetch('http://localhost:8000/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ username: email, password: password }),
+        body: new URLSearchParams({ username: email, password }),
       });
-      if (!loginResponse.ok) throw new Error('Account created but login failed. Please sign in manually.');
-      const loginData = await loginResponse.json();
-      login(loginData.access_token);
+      const loginData = await loginRes.json();
+      // Since 2FA just got enabled, login returns require_2fa=true — verify
+      if (loginData.require_2fa) {
+        const verRes = await fetch('http://localhost:8000/auth/2fa/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code: otpCode }),
+        });
+        const verData = await verRes.json();
+        login(verData.access_token, verData.refresh_token);
+      } else {
+        login(loginData.access_token, loginData.refresh_token);
+      }
       navigate('/');
     } catch (err) {
-      setApiError(err.message);
+      setError(err.message);
+      setOtpCode('');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const skip2FA = async () => {
+    setLoading(true);
+    try {
+      const loginRes = await fetch('http://localhost:8000/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ username: email, password }),
+      });
+      const loginData = await loginRes.json();
+      login(loginData.access_token, loginData.refresh_token);
+      navigate('/');
+    } catch {
+      navigate('/login');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-[#fef8f3]">
-      {/* Left branding panel */}
-      <div className="hidden lg:flex flex-col justify-between w-96 bg-gradient-to-b from-[#6a0018] via-[#81001d] to-[#5c0014] p-10 shadow-2xl relative overflow-hidden">
-        {/* Subtle background grid */}
-        <div className="absolute inset-0 opacity-5">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.5"/>
-            </pattern>
-            <rect width="100%" height="100%" fill="url(#grid2)" />
-          </svg>
-        </div>
+    <div className="min-h-screen flex bg-[#fdf9f2] relative overflow-hidden">
+      <TopoBg />
+
+      {/* ── Left branding panel ── */}
+      <div
+        className="hidden lg:flex relative flex-col justify-between w-[420px] p-12 overflow-hidden shrink-0"
+        style={{ background: 'linear-gradient(160deg, #C0122F 0%, #9A0820 45%, #6A0318 100%)' }}
+      >
+        <div className="absolute inset-0 opacity-[0.04]"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+        <div className="absolute top-[-60px] right-[-60px] w-[280px] h-[280px] rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(250,188,10,0.18) 0%, transparent 70%)' }} />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[#C9A84C]/20 border border-[#C9A84C]/40 flex items-center justify-center">
-              <span
-                className="material-symbols-outlined text-[#C9A84C] text-2xl"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                shield
-              </span>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #FABC0A 0%, #D49D00 100%)' }}>
+              <span className="material-symbols-outlined text-white text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>shield</span>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">QShield</h1>
-              <p className="text-[10px] text-[#C9A84C] font-semibold tracking-[0.18em] uppercase">
-                Quantum-Safe Security Platform
-              </p>
-            </div>
+            <h1 className="text-[18px] font-black text-white tracking-tight uppercase">Requiem</h1>
           </div>
-        </div>
-
-        <div className="relative z-10">
-          <span
-            className="material-symbols-outlined text-white/10 block mb-6"
-            style={{ fontSize: '140px', fontVariationSettings: "'FILL' 1" }}
-          >
-            verified_user
-          </span>
-          <h2 className="text-2xl font-bold text-white mb-3 leading-snug">
-            Start Securing<br/>
-            <span className="text-[#C9A84C]">Your Infrastructure</span>
+          <div className="h-px mb-8" style={{ background: 'linear-gradient(90deg, rgba(250,188,10,0.5) 0%, rgba(255,255,255,0.08) 70%, transparent 100%)' }} />
+          <h2 className="text-[32px] font-black text-white leading-tight tracking-tight">
+            Join the<br />Requiem<br />Platform
           </h2>
-          <p className="text-white/60 text-sm leading-relaxed">
-            Create your QShield account to access the quantum-safe security command center
-            and start monitoring your critical assets.
+          <p className="text-white/55 text-sm mt-4 leading-relaxed max-w-[260px]">
+            Create your secure account and gain visibility into your entire cryptographic attack surface.
           </p>
         </div>
 
-        <p className="text-white/25 text-xs relative z-10">
-          © 2025 QShield. Punjab National Bank Security Services.
-        </p>
+        {/* Step indicators */}
+        <div className="relative z-10">
+          {[
+            { num: 1, label: 'Create account', active: step === 'form' },
+            { num: 2, label: 'Set up 2FA', active: step === 'setup2fa' },
+            { num: 3, label: 'Verify & enter', active: step === 'confirm2fa' },
+          ].map(({ num, label, active }) => (
+            <div key={num} className="flex items-center gap-3 mb-4">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black border-2 shrink-0 transition-all ${active ? 'bg-secondary border-secondary text-on-secondary shadow-[0_0_12px_rgba(250,188,10,0.5)]' : 'bg-white/10 border-white/20 text-white/50'}`}>
+                {num}
+              </div>
+              <span className={`text-xs font-semibold transition-all ${active ? 'text-white' : 'text-white/40'}`}>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="relative z-10 text-white/25 text-[10px] tracking-widest uppercase">© 2025 Requiem Security</p>
       </div>
 
-      {/* Right signup form */}
-      <div className="flex-1 flex items-center justify-center px-8 py-12">
-        <div className="max-w-md w-full">
-          {/* Mobile logo */}
-          <div className="flex lg:hidden items-center gap-2 mb-8">
-            <span
-              className="material-symbols-outlined text-[#81001d] text-2xl"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              shield
-            </span>
-            <span className="text-lg font-bold text-[#81001d]">QShield</span>
-          </div>
+      {/* ── Right form ── */}
+      <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-[420px]">
+          <div
+            className="rounded-2xl border border-[#e5dfd3] shadow-2xl shadow-[#B50A2E]/8 p-8 relative overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, rgba(253,251,246,0.97) 0%, rgba(248,244,236,0.97) 100%)', backdropFilter: 'blur(24px)' }}
+          >
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#FABC0A]/30 to-transparent" />
 
-          <div className="mb-10">
-            <h2 className="text-3xl font-bold text-[#81001d] tracking-tight">Create account</h2>
-            <p className="text-[#594141] mt-2 text-sm">
-              Join QShield to start monitoring your assets
-            </p>
-          </div>
+            {/* ── Step 1: Registration form ── */}
+            {step === 'form' && (
+              <>
+                <div className="mb-7">
+                  <h2 className="text-[28px] font-black text-[#721c24] tracking-tight leading-tight">Create account</h2>
+                  <p className="text-[#8d7070] text-sm mt-1">Join Requiem to start monitoring your assets</p>
+                </div>
 
-          {/* API Error */}
-          {apiError && (
-            <div className="bg-red-500/10 border border-red-400/40 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm flex items-start gap-2">
-              <span
-                className="material-symbols-outlined text-red-500 text-base mt-0.5 shrink-0"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                error
-              </span>
-              {apiError}
-            </div>
-          )}
+                {error && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl mb-5 text-sm">
+                    <span className="material-symbols-outlined text-[16px]">error</span>
+                    {error}
+                  </div>
+                )}
 
-          <form onSubmit={handleSignup} className="space-y-5">
-            {/* Email */}
-            <div>
-              <label className="block text-xs font-bold text-[#594141] uppercase tracking-widest mb-2">
-                Email
-              </label>
-              <input
-                id="signup-email"
-                type="email"
-                required
-                autoComplete="email"
-                className={`w-full bg-white border rounded-xl px-4 py-3 text-[#1d1b19] text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-[#8d7070] ${
-                  errors.email
-                    ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20'
-                    : 'border-[#e1bebe] focus:border-[#81001d] focus:ring-[#81001d]/20'
-                }`}
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
-                }}
-                placeholder="you@example.com"
-              />
-              {errors.email && (
-                <p className="mt-1.5 text-xs text-red-600">{errors.email}</p>
-              )}
-            </div>
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <InputField label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@requiem.com" icon="mail" required />
+                  <div>
+                    <label className="block text-[10px] font-black text-[#594141] uppercase tracking-[0.18em] mb-1.5">Password</label>
+                    <div className="relative">
+                      <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[18px] text-[#8d7070] pointer-events-none">lock</span>
+                      <input
+                        type={showPw ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Min. 8 characters"
+                        className="w-full bg-white/70 border border-[#e1bebe] pl-10 pr-10 py-3 text-[#1d1b19] text-sm rounded-xl focus:outline-none focus:border-[#B50A2E] focus:ring-2 focus:ring-[#B50A2E]/15 focus:bg-white transition-all placeholder:text-[#b89898]"
+                      />
+                      <button type="button" onClick={() => setShowPw(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8d7070] hover:text-[#B50A2E] transition-colors">
+                        <span className="material-symbols-outlined text-[18px]">{showPw ? 'visibility_off' : 'visibility'}</span>
+                      </button>
+                    </div>
+                  </div>
+                  <InputField label="Confirm Password" type={showPw ? 'text' : 'password'} value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="Re-enter password" icon="lock_reset" required />
 
-            {/* Password */}
-            <div>
-              <label className="block text-xs font-bold text-[#594141] uppercase tracking-widest mb-2">
-                Password
-              </label>
-              <input
-                id="signup-password"
-                type="password"
-                required
-                autoComplete="new-password"
-                className={`w-full bg-white border rounded-xl px-4 py-3 text-[#1d1b19] text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-[#8d7070] ${
-                  errors.password
-                    ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20'
-                    : 'border-[#e1bebe] focus:border-[#81001d] focus:ring-[#81001d]/20'
-                }`}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
-                }}
-                placeholder="••••••••"
-              />
-              <PasswordStrengthMeter password={password} />
-              {errors.password && (
-                <p className="mt-1.5 text-xs text-red-600">{errors.password}</p>
-              )}
-            </div>
+                  {/* 2FA toggle */}
+                  <div
+                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${enable2FA ? 'border-[#FABC0A]/60 bg-[#fffbee]' : 'border-[#e5dfd3] bg-white/40'}`}
+                    onClick={() => setEnable2FA(v => !v)}
+                  >
+                    <div className={`w-10 h-5 rounded-full relative transition-all shrink-0 ${enable2FA ? 'bg-[#FABC0A]' : 'bg-[#e5dfd3]'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${enable2FA ? 'left-5' : 'left-0.5'}`} />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black text-[#594141] uppercase tracking-widest">Enable 2FA</p>
+                      <p className="text-[10px] text-[#8d7070]">Recommended — adds extra security</p>
+                    </div>
+                    <span className="material-symbols-outlined text-[#FABC0A] ml-auto text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      {enable2FA ? 'verified_user' : 'shield'}
+                    </span>
+                  </div>
 
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-xs font-bold text-[#594141] uppercase tracking-widest mb-2">
-                Confirm Password
-              </label>
-              <input
-                id="signup-confirm-password"
-                type="password"
-                required
-                autoComplete="new-password"
-                className={`w-full bg-white border rounded-xl px-4 py-3 text-[#1d1b19] text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-[#8d7070] ${
-                  errors.confirmPassword
-                    ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20'
-                    : confirmPassword && confirmPassword === password
-                    ? 'border-green-400 focus:border-green-500 focus:ring-green-400/20'
-                    : 'border-[#e1bebe] focus:border-[#81001d] focus:ring-[#81001d]/20'
-                }`}
-                value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value);
-                  if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-                }}
-                placeholder="••••••••"
-              />
-              {errors.confirmPassword && (
-                <p className="mt-1.5 text-xs text-red-600">{errors.confirmPassword}</p>
-              )}
-              {confirmPassword && confirmPassword === password && (
-                <p className="mt-1.5 text-xs text-green-600 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                  Passwords match
-                </p>
-              )}
-            </div>
+                  <PrimaryBtn type="submit" loading={loading}>
+                    {enable2FA ? 'Create Account & Set Up 2FA' : 'Create Account'}
+                  </PrimaryBtn>
+                </form>
 
-            <button
-              id="signup-submit"
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-[#81001d] to-[#a51c30] hover:from-[#6a0018] hover:to-[#8e1829] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl uppercase text-xs tracking-widest shadow-lg shadow-[#81001d]/30 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                  Creating account…
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </button>
-          </form>
+                <div className="mt-6 text-center text-sm text-[#8d7070]">
+                  Already have an account?{' '}
+                  <Link to="/login" className="text-[#B50A2E] font-bold hover:text-[#8A0520] transition-colors">Sign in</Link>
+                </div>
+              </>
+            )}
 
-          <div className="mt-8 text-center text-sm text-[#594141]">
-            Already have an account?{' '}
-            <Link to="/login" className="text-[#C9A84C] font-bold hover:text-[#81001d] transition-colors">
-              Sign in
-            </Link>
+            {/* ── Step 2: Scan QR ── */}
+            {step === 'setup2fa' && (
+              <>
+                <div className="text-center mb-5">
+                  <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg, #FABC0A 0%, #D49D00 100%)' }}>
+                    <span className="material-symbols-outlined text-white text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>qr_code_2</span>
+                  </div>
+                  <h2 className="text-[22px] font-black text-[#721c24] tracking-tight">Scan QR Code</h2>
+                  <p className="text-[#8d7070] text-sm mt-1">Use Google Authenticator, Authy, or any TOTP app</p>
+                </div>
+
+                {qrData ? (
+                  <div className="flex justify-center mb-4">
+                    <div className="p-3 bg-white rounded-2xl border border-[#e5dfd3] shadow-sm">
+                      <img src={qrData} alt="2FA QR Code" className="w-48 h-48 rounded-lg" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-sm text-[#8d7070] mb-4">QR generation requires the <code>qrcode</code> package</div>
+                )}
+
+                {/* Manual entry key */}
+                <div className="bg-[#fdf0f0] border border-[#e1bebe] rounded-xl p-3 mb-5">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#594141] mb-1">Manual Entry Key</p>
+                  <p className="font-mono text-[12px] text-[#721c24] font-bold tracking-widest break-all">{totpSecret}</p>
+                </div>
+
+                <PrimaryBtn onClick={() => setStep('confirm2fa')}>
+                  I've scanned it — Continue
+                </PrimaryBtn>
+                <button onClick={skip2FA} className="w-full mt-3 text-[#8d7070] hover:text-[#594141] text-xs font-bold transition-colors py-2">
+                  Skip for now
+                </button>
+              </>
+            )}
+
+            {/* ── Step 3: Confirm OTP ── */}
+            {step === 'confirm2fa' && (
+              <>
+                <button onClick={() => setStep('setup2fa')}
+                  className="flex items-center gap-1 text-[#8d7070] hover:text-[#B50A2E] text-xs font-bold uppercase tracking-widest mb-5 transition-colors">
+                  <span className="material-symbols-outlined text-[15px]">arrow_back</span> Back
+                </button>
+                <div className="text-center mb-5">
+                  <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg, #B50A2E 0%, #8A0520 100%)' }}>
+                    <span className="material-symbols-outlined text-white text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>phonelink_lock</span>
+                  </div>
+                  <h2 className="text-[22px] font-black text-[#721c24] tracking-tight">Verify Setup</h2>
+                  <p className="text-[#8d7070] text-sm mt-1">Enter the 6-digit code from your authenticator app to confirm</p>
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl mb-4 text-sm">
+                    <span className="material-symbols-outlined text-[16px]">error</span>
+                    {error}
+                  </div>
+                )}
+
+                <div className="mb-4">
+                  <input
+                    autoFocus
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    className="w-full text-center text-2xl font-black bg-white border-2 border-[#e1bebe] focus:border-[#B50A2E] focus:ring-2 focus:ring-[#B50A2E]/15 rounded-xl py-4 tracking-[0.4em] focus:outline-none transition-all"
+                  />
+                </div>
+
+                <PrimaryBtn onClick={handleConfirm2FA} disabled={otpCode.length < 6} loading={loading}>
+                  Confirm & Enter Dashboard
+                </PrimaryBtn>
+              </>
+            )}
           </div>
         </div>
       </div>

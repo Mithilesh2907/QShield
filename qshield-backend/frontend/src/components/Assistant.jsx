@@ -1,42 +1,240 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+﻿import { useEffect, useRef, useState } from 'react';
 import aiBot from '../assets/aibot.png';
+import { sendAssistantQuery } from '../services/assistantApi';
+
+const STORAGE_KEY = 'requiem-ai-chat-v2';
+const MAX_MESSAGES = 50;
 
 const QUICK_PROMPTS = [
-  'Summarize the latest scan',
-  'What are the top risks?',
-  'Show vulnerable domains',
-  'Any threat surface issues?',
+  'Summarize scan',
+  'Top risks',
+  'Vulnerable domains',
+  'Threat surface issues',
 ];
 
-const markdownComponents = {
-  h1: ({ children }) => <h1 className="text-2xl font-black text-on-surface mb-3">{children}</h1>,
-  h2: ({ children }) => <h2 className="text-xl font-bold text-on-surface mb-2">{children}</h2>,
-  h3: ({ children }) => <h3 className="text-lg font-bold text-on-surface mb-2">{children}</h3>,
-  p: ({ children }) => <p className="mb-3 leading-7 text-sm text-on-surface-variant">{children}</p>,
-  ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 mb-3 text-sm text-on-surface-variant">{children}</ul>,
-  ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 mb-3 text-sm text-on-surface-variant">{children}</ol>,
-  li: ({ children }) => <li className="leading-7">{children}</li>,
-  strong: ({ children }) => <strong className="font-bold text-on-surface">{children}</strong>,
-  br: () => <br />,
-  code: ({ children }) => (
-    <code className="rounded bg-surface-container-high px-1.5 py-0.5 text-[12px] font-mono text-on-surface">
-      {children}
-    </code>
-  ),
-};
+function makeId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `msg_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function loadMessages() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveMessages(messages) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES)));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function renderInline(text) {
+  const output = [];
+  const regex = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      output.push(text.slice(lastIndex, match.index));
+    }
+
+    const token = match[0];
+    if (token.startsWith('**')) {
+      output.push(
+        <strong key={`${match.index}-strong`} className="font-extrabold text-on-surface">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else {
+      output.push(
+        <code
+          key={`${match.index}-code`}
+          className="rounded bg-surface-container-high px-1.5 py-0.5 text-[12px] font-mono text-on-surface"
+        >
+          {token.slice(1, -1)}
+        </code>
+      );
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    output.push(text.slice(lastIndex));
+  }
+
+  return output;
+}
+
+function RichText({ text }) {
+  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let listItems = [];
+  let listType = null;
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    const ListTag = listType === 'ol' ? 'ol' : 'ul';
+    blocks.push(
+      <ListTag
+        key={`list-${blocks.length}`}
+        className={`mb-3 space-y-1.5 ${listType === 'ol' ? 'list-decimal' : 'list-disc'} pl-5`}
+      >
+        {listItems}
+      </ListTag>
+    );
+    listItems = [];
+    listType = null;
+  };
+
+  lines.forEach((rawLine, index) => {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushList();
+      blocks.push(<div key={`space-${index}`} className="h-2" />);
+      return;
+    }
+
+    const headingMatch = line.match(/^(#{1,3})\s+(.+)$/);
+    if (headingMatch) {
+      flushList();
+      const level = headingMatch[1].length;
+      const HeadingTag = `h${Math.min(level + 1, 4)}`;
+      blocks.push(
+        <HeadingTag
+          key={`heading-${index}`}
+          className={`mb-2 font-black tracking-tight text-on-surface ${
+            level === 1 ? 'text-2xl' : level === 2 ? 'text-xl' : 'text-lg'
+          }`}
+        >
+          {renderInline(headingMatch[2])}
+        </HeadingTag>
+      );
+      return;
+    }
+
+    if (/^[-*]\s+/.test(line)) {
+      if (listType && listType !== 'ul') flushList();
+      listType = 'ul';
+      listItems.push(
+        <li key={`li-${index}`} className="leading-7 text-sm text-on-surface-variant">
+          {renderInline(line.replace(/^[-*]\s+/, ''))}
+        </li>
+      );
+      return;
+    }
+
+    if (/^\d+\.\s+/.test(line)) {
+      if (listType && listType !== 'ol') flushList();
+      listType = 'ol';
+      listItems.push(
+        <li key={`ol-${index}`} className="leading-7 text-sm text-on-surface-variant">
+          {renderInline(line.replace(/^\d+\.\s+/, ''))}
+        </li>
+      );
+      return;
+    }
+
+    flushList();
+    blocks.push(
+      <p key={`p-${index}`} className="mb-3 leading-7 text-sm text-on-surface-variant whitespace-pre-wrap">
+        {renderInline(line)}
+      </p>
+    );
+  });
+
+  flushList();
+  return <>{blocks}</>;
+}
+
+function ChatBubble({ message, onCopy, isCopied }) {
+  const isUser = message.role === 'user';
+  const isError = Boolean(message.error) || String(message.content || '').startsWith('ERROR:');
+
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+      <article
+        className={`max-w-[92%] sm:max-w-[84%] rounded-2xl border px-4 py-3 shadow-sm ${
+          isUser
+            ? 'bg-primary text-white border-primary/25 rounded-br-md'
+            : isError
+              ? 'bg-error-container text-on-error-container border-error/25 rounded-bl-md'
+              : 'bg-surface-container-low text-on-surface border-outline-variant/30 rounded-bl-md'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-4 mb-2">
+          <span className={`text-[10px] font-black uppercase tracking-[0.24em] ${isUser ? 'text-white/80' : 'text-on-surface-variant'}`}>
+            {isUser ? 'You' : 'Assistant'}
+          </span>
+          {!isUser && (
+            <button
+              type="button"
+              onClick={() => onCopy(message.content)}
+              className={`text-[10px] font-black uppercase tracking-[0.22em] transition-colors ${
+                isError ? 'text-on-error-container/70 hover:text-on-error-container' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              {isCopied ? 'Copied' : 'Copy'}
+            </button>
+          )}
+        </div>
+
+        {message.pending ? (
+          <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+            <span className="material-symbols-outlined animate-spin text-[18px]">autorenew</span>
+            Analyzing...
+          </div>
+        ) : isUser ? (
+          <p className="whitespace-pre-wrap text-sm leading-7 text-white/95">{message.content}</p>
+        ) : (
+          <div className="text-sm leading-7">
+            <RichText text={message.content} />
+          </div>
+        )}
+
+        {!isUser && !message.pending && (message.provider || message.model) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant/80">
+            {message.provider && (
+              <span className="rounded-full border border-outline-variant/30 bg-surface px-2.5 py-1">
+                {message.provider}
+              </span>
+            )}
+            {message.model && (
+              <span className="rounded-full border border-outline-variant/30 bg-surface px-2.5 py-1 normal-case tracking-normal">
+                {message.model}
+              </span>
+            )}
+          </div>
+        )}
+      </article>
+    </div>
+  );
+}
 
 export default function Assistant() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [query, setQuery] = useState('');
+  const [messages, setMessages] = useState(() => loadMessages());
+  const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
-  const streamAbortRef = useRef(null);
 
-  const canSend = useMemo(() => Boolean(query.trim()) && !sending, [query, sending]);
+  useEffect(() => {
+    saveMessages(messages);
+  }, [messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -45,140 +243,107 @@ export default function Assistant() {
   }, [messages, sending, open]);
 
   useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
+    if (!open) return undefined;
+
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 50);
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [open]);
 
-  const sendQuery = async (overrideQuery) => {
-    const trimmed = (overrideQuery ?? query).trim();
-    if (!trimmed || sending) return;
+  useEffect(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    textarea.style.height = '40px';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+  }, [draft]);
 
-    setQuery('');
+  const appendMessages = (updater) => {
+    setMessages((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      return next.slice(-MAX_MESSAGES);
+    });
+  };
+
+  const sendQuery = async (overrideQuery) => {
+    const value = (overrideQuery ?? draft).trim();
+    if (!value || sending) return;
+
+    setDraft('');
     setSending(true);
     setCopiedIndex(null);
-    setMessages((prev) => [
+
+    const assistantId = makeId();
+    appendMessages((prev) => [
       ...prev,
-      { role: 'user', content: trimmed },
-      { role: 'assistant', content: '' },
+      { id: makeId(), role: 'user', content: value },
+      { id: assistantId, role: 'assistant', content: '', pending: true },
     ]);
 
     try {
-      const controller = new AbortController();
-      streamAbortRef.current = controller;
-
-      const res = await fetch('http://localhost:8000/ai-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: trimmed,
-          history: messages.slice(-5).map((message) => ({
-            role: message.role,
-            content: message.content,
-          })),
-        }),
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'AI chat failed');
-      }
-
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let firstToken = false;
-
-      const appendAssistant = (text) => {
-        setMessages((prev) => {
-          const next = [...prev];
-          const lastIndex = next.length - 1;
-          if (lastIndex >= 0 && next[lastIndex].role === 'assistant') {
-            next[lastIndex] = {
-              ...next[lastIndex],
-              content: (next[lastIndex].content || '') + text,
-            };
-          }
-          return next;
-        });
-      };
-
-      const processEvent = (payload) => {
-        if (payload.chunk !== undefined) {
-          if (!firstToken) {
-            firstToken = true;
-          }
-          appendAssistant(payload.chunk);
-        }
-        if (payload.error) {
-          appendAssistant(payload.error);
-        }
-      };
-
-      if (!reader) {
-        throw new Error('AI chat failed');
-      }
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        const events = buffer.split('\n\n');
-        buffer = events.pop() || '';
-
-        for (const event of events) {
-          const lines = event.split('\n').map((line) => line.trim()).filter(Boolean);
-          for (const line of lines) {
-            if (!line.startsWith('data:')) continue;
-            const raw = line.slice(5).trim();
-            if (!raw) continue;
-            try {
-              const payload = JSON.parse(raw);
-              processEvent(payload);
-            } catch {
-              appendAssistant(raw);
-            }
-          }
-        }
-      }
-
-      if (!firstToken) {
-        appendAssistant('AI service unavailable');
-      }
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        setMessages((prev) => {
-          const next = [...prev];
-          const lastIndex = next.length - 1;
-          if (lastIndex >= 0 && next[lastIndex].role === 'assistant' && !next[lastIndex].content) {
-            next[lastIndex] = {
-              ...next[lastIndex],
-              content: 'AI service unavailable',
-            };
-            return next;
-          }
-          return [...prev, { role: 'assistant', content: 'AI service unavailable' }];
-        });
-      }
+      const result = await sendAssistantQuery(value);
+      appendMessages((prev) => prev.map((message) => {
+        if (message.id !== assistantId) return message;
+        return {
+          ...message,
+          content: result.response || 'AI service unavailable',
+          pending: false,
+          provider: result.provider,
+          model: result.model,
+          error: String(result.response || '').startsWith('ERROR:'),
+        };
+      }));
+    } catch (error) {
+      const errorText = error?.message || 'AI service unavailable';
+      appendMessages((prev) => prev.map((message) => {
+        if (message.id !== assistantId) return message;
+        return {
+          ...message,
+          content: errorText,
+          pending: false,
+          provider: 'ollama',
+          model: null,
+          error: true,
+        };
+      }));
     } finally {
       setSending(false);
-      streamAbortRef.current = null;
+    }
+  };
+
+  const onKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendQuery();
     }
   };
 
   const clearChat = () => {
     setMessages([]);
     setCopiedIndex(null);
-    streamAbortRef.current?.abort();
-    streamAbortRef.current = null;
+    setDraft('');
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore storage failures
+    }
   };
 
   const copyMessage = async (text, index) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex((current) => (current === index ? null : current)), 1200);
+      window.setTimeout(() => {
+        setCopiedIndex((current) => (current === index ? null : current));
+      }, 1200);
     } catch {
       // ignore clipboard errors
     }
@@ -188,7 +353,7 @@ export default function Assistant() {
     <>
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] bg-black/35 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         />
       )}
@@ -196,155 +361,132 @@ export default function Assistant() {
       {!open && (
         <button
           type="button"
-          onClick={() => setOpen((prev) => !prev)}
-          className="fixed bottom-5 right-5 z-[1100] bg-transparent p-0 border-0 shadow-none hover:scale-105 transition-transform duration-200"
-          aria-label="Open assistant"
+          onClick={() => setOpen(true)}
+          className="fixed bottom-5 right-5 z-[1100] bg-transparent p-0 border-0 shadow-none transition-transform duration-200 hover:scale-105 focus-visible:outline-none"
+          aria-label="Open AI assistant"
         >
           <img
             src={aiBot}
             alt="Open assistant"
-            className="block h-[160px] w-auto object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.28)] select-none pointer-events-none"
+            className="block h-[170px] w-auto select-none object-contain drop-shadow-[0_12px_26px_rgba(0,0,0,0.3)] pointer-events-none"
             draggable="false"
           />
         </button>
       )}
 
       <section
-        className={`fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[42vw] lg:w-[38vw] xl:w-[34vw] min-w-[380px] max-w-[720px] bg-surface text-on-surface border-l border-outline-variant/30 shadow-2xl shadow-black/20 transform transition-transform duration-300 ${
+        className={`fixed top-0 right-0 bottom-0 z-[70] flex w-full flex-col border-l border-outline-variant/30 bg-surface text-on-surface shadow-2xl shadow-black/25 transition-transform duration-300 sm:w-[520px] lg:w-[45vw] lg:max-w-[700px] ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
         aria-label="AI assistant panel"
       >
-        <div className="h-full flex flex-col bg-gradient-to-b from-surface via-surface to-surface-container-low">
-          <div className="px-6 py-5 border-b border-outline-variant/30 bg-surface/90 backdrop-blur-md">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.25em] mb-3">
-                  <span className="w-2 h-2 rounded-full bg-primary" />
-                  AI Assistant
+        <div className="assistant-container flex h-full min-h-0 flex-col bg-gradient-to-b from-surface via-surface to-surface-container-low">
+          <div className="flex-none border-b border-outline-variant/20 bg-surface/90 px-5 py-5 backdrop-blur-md">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={aiBot}
+                    alt=""
+                    aria-hidden="true"
+                    className="h-7 w-7 shrink-0 select-none object-contain"
+                    draggable="false"
+                  />
+                  <h3 className="text-2xl font-black tracking-tight text-on-surface">Requiem AI</h3>
                 </div>
-                <h3 className="text-2xl font-black text-on-surface tracking-tight">Requiem Intelligence</h3>
-                <p className="text-sm text-on-surface-variant mt-1">Ask questions about the latest scan context.</p>
               </div>
-              <div className="flex items-center gap-2">
+
+              <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
                   onClick={clearChat}
-                  className="px-3 py-2 rounded-xl bg-surface-container-high border border-outline-variant/30 text-xs font-bold uppercase tracking-wider text-on-surface-variant hover:text-on-surface transition-colors"
+                  className="rounded-lg border border-outline-variant/30 bg-surface-container-high px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.22em] text-on-surface-variant transition-colors hover:text-on-surface"
                 >
                   Clear
                 </button>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="h-10 w-10 rounded-xl bg-surface-container-high border border-outline-variant/30 text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant/30 bg-surface-container-high text-on-surface-variant transition-colors hover:text-on-surface"
                   aria-label="Close assistant"
                 >
-                  <span className="material-symbols-outlined text-lg">close</span>
+                  <span className="material-symbols-outlined text-[18px]">close</span>
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="px-6 pt-4">
-            <div className="grid grid-cols-2 gap-2.5">
-              {QUICK_PROMPTS.map((item) => (
+          <div ref={scrollRef} className="messages-area flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-5">
+            {messages.length === 0 ? (
+              <div className="flex h-full min-h-[320px] items-center justify-center">
+                <div className="max-w-md rounded-3xl border border-outline-variant/25 bg-surface-container-low p-5 text-center shadow-sm">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <span className="material-symbols-outlined text-[26px]">smart_toy</span>
+                  </div>
+                  <h4 className="text-lg font-black text-on-surface">Start a conversation</h4>
+                  <p className="mt-2 text-sm leading-7 text-on-surface-variant">
+                    Ask for a scan summary, threat surface review, or a plain-English explanation of what changed.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {messages.map((message, index) => (
+                  <ChatBubble
+                    key={message.id || `${message.role}-${index}`}
+                    message={message}
+                    onCopy={(content) => copyMessage(content, index)}
+                    isCopied={copiedIndex === index}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="suggestions flex-none border-t border-outline-variant/20 bg-surface/95 px-4 py-2 backdrop-blur-md sm:px-5">
+            <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {QUICK_PROMPTS.map((prompt) => (
                 <button
-                  key={item}
+                  key={prompt}
                   type="button"
-                  onClick={() => sendQuery(item)}
-                  className="min-h-[42px] rounded-xl bg-surface-container-high border border-outline-variant/30 px-3 py-2 text-left text-xs leading-snug font-semibold text-on-surface-variant hover:text-on-surface hover:border-primary/40 hover:shadow-sm hover:scale-[1.01] transition-all whitespace-normal"
+                  onClick={() => sendQuery(prompt)}
                   disabled={sending}
+                  className="suggestion-chip whitespace-nowrap rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 text-[13px] font-medium leading-none text-on-surface-variant transition-all duration-200 hover:bg-surface-container-high hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {item}
+                  {prompt}
                 </button>
               ))}
             </div>
           </div>
 
-          <div
-            ref={scrollRef}
-            className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-4 scroll-smooth"
-          >
-            {messages.length === 0 ? (
-              <div className="rounded-3xl border border-outline-variant/30 bg-surface-container-low p-5 shadow-sm">
-                <p className="text-sm text-on-surface-variant leading-7">
-                  Ask a question about assets, threat surface, vulnerabilities, or CBOM. Responses will appear here in readable markdown.
-                </p>
-              </div>
-            ) : (
-              messages.map((msg, index) => {
-                const isUser = msg.role === 'user';
-                return (
-                  <article
-                    key={`${msg.role}-${index}`}
-                    className={[
-                      'group rounded-3xl border shadow-sm',
-                      isUser
-                        ? 'ml-auto max-w-[90%] bg-primary text-on-primary border-primary/10'
-                        : 'mr-auto max-w-full bg-surface-container-low text-on-surface border-outline-variant/30',
-                    ].join(' ')}
-                  >
-                    <div className="flex items-center justify-between gap-3 px-5 pt-4">
-                      <span className={`text-[10px] font-black uppercase tracking-[0.25em] ${isUser ? 'text-on-primary/70' : 'text-on-surface-variant/70'}`}>
-                        {isUser ? 'You' : 'AI'}
-                      </span>
-                      {!isUser && (
-                        <button
-                          type="button"
-                          onClick={() => copyMessage(msg.content, index)}
-                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-[10px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-lg bg-surface border border-outline-variant/30 text-on-surface-variant hover:text-on-surface"
-                        >
-                          {copiedIndex === index ? 'Copied' : 'Copy'}
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="px-5 pb-4 pt-3">
-                      {isUser ? (
-                        <p className="whitespace-pre-wrap text-sm leading-7 text-on-primary/95">{msg.content}</p>
-                      ) : (
-                        <div className="prose prose-sm max-w-none prose-headings:font-black prose-headings:text-on-surface prose-p:text-on-surface-variant prose-li:text-on-surface-variant prose-strong:text-on-surface prose-ul:my-3 prose-ol:my-3 prose-li:my-1">
-                          <ReactMarkdown components={markdownComponents}>
-                            {msg.content || (sending && index === messages.length - 1 ? 'Thinking...' : '')}
-                          </ReactMarkdown>
-                        </div>
-                      )}
-                    </div>
-                  </article>
-                );
-              })
-            )}
-          </div>
-
-          <div className="sticky bottom-0 border-t border-outline-variant/30 bg-surface/95 backdrop-blur-md px-6 py-4">
-            <div className="flex gap-3 items-end">
+          <div className="input-area sticky bottom-0 z-10 border-t border-outline-variant/20 bg-surface/98 px-3 py-2 backdrop-blur-md sm:px-4">
+            <div className="rounded-2xl border border-outline-variant/25 bg-white p-1.5 shadow-sm">
+              <div className="flex items-end gap-2">
               <textarea
                 ref={inputRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendQuery();
-                  }
-                }}
-                placeholder="Ask about assets, threats, vulnerabilities..."
-                rows={2}
-                className="flex-1 resize-none rounded-2xl bg-surface-container-high border border-outline-variant/30 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/10 min-h-[64px]"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder="Ask about the latest scan context..."
+                className="max-h-[120px] min-h-[40px] flex-1 resize-none overflow-y-auto rounded-xl border border-outline-variant/20 bg-surface px-3 py-2.5 text-[14px] leading-[1.4] text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/50 focus:border-primary/30"
+                style={{ height: '40px' }}
               />
-              <button
-                type="button"
-                onClick={() => sendQuery()}
-                disabled={!canSend}
-                className="h-[64px] px-5 rounded-2xl bg-primary text-on-primary text-sm font-black uppercase tracking-wider shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Send
-              </button>
+
+                <button
+                  type="button"
+                  onClick={() => sendQuery()}
+                  disabled={!draft.trim() || sending}
+                  className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {sending ? (
+                    <span className="material-symbols-outlined animate-spin text-[18px]">autorenew</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-[18px]">send</span>
+                  )}
+                  Send
+                </button>
+              </div>
             </div>
-            <p className="mt-2 text-[11px] text-on-surface-variant/60">
-              Press Enter to send, Shift+Enter for a new line.
-            </p>
           </div>
         </div>
       </section>

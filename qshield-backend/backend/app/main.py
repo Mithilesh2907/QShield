@@ -27,9 +27,10 @@ from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.date import DateTrigger
 from dotenv import load_dotenv
-from fastapi.responses import StreamingResponse
+from pathlib import Path
 
-load_dotenv()  # Load .env file so SMTP credentials are available
+ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
+load_dotenv(ROOT_ENV)  # Load the project root .env explicitly
 
 scheduler = BackgroundScheduler(timezone="Asia/Kolkata")
 
@@ -47,7 +48,7 @@ from backend.app.services.cert_analysis import get_certificate_expiry
 from backend.app.services.security_headers import check_security_headers
 from backend.app.services.schedule_store import add_schedule, load_schedules, update_schedule_status
 from backend.app.services.threat_surface import scan_threat_surface
-from backend.app.services.scan_context import build_scan_context, load_scan_context, stream_local_gemini
+from backend.app.services.scan_context import build_scan_context, load_scan_context, call_local_gemini, call_nvidia_llm
 
 # Initialize DB tables on startup
 Base.metadata.create_all(bind=engine)
@@ -328,7 +329,6 @@ class ThreatSurfaceRequest(BaseModel):
 
 class AiChatRequest(BaseModel):
     query: str
-    history: list[dict[str, str]] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -502,32 +502,37 @@ async def ai_chat(req: AiChatRequest):
         raise HTTPException(status_code=422, detail="Query is required")
 
     context = load_scan_context()
-    history = (req.history or [])[-5:]
-    history_lines = []
-    for item in history:
-        role = (item.get("role") or "").strip()
-        content = (item.get("content") or "").strip()
-        if role and content:
-            history_lines.append(f"{role.title()}: {content}")
-
     prompt = (
         "Scan Data:\n"
         f"{json.dumps(context, indent=2)}\n\n"
-        + (f"Conversation History:\n" + "\n".join(history_lines) + "\n\n" if history_lines else "")
-        + f"User Question: {query}"
+        f"User Question: {query}"
     )
 
-    def event_stream():
-        try:
-            for chunk in stream_local_gemini(prompt):
-                if chunk:
-                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
-            yield f"data: {json.dumps({'done': True})}\n\n"
-        except Exception as exc:
-            logger.exception("AI chat failed")
-            yield f"data: {json.dumps({'error': 'AI service unavailable'})}\n\n"
+    nvidia_key = os.getenv("NVIDIA_API_KEY", "").strip()
+    logger.info(f"Using NVIDIA: {bool(nvidia_key)}")
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    try:
+        if nvidia_key:
+            logger.info("Calling NVIDIA API...")
+            result = await asyncio.to_thread(call_nvidia_llm, prompt)
+        else:
+            logger.info("Falling back to Ollama")
+            result = await asyncio.to_thread(call_local_gemini, prompt)
+    except Exception as e:
+        logger.exception("AI chat failed")
+        return {
+            "query": query,
+            "response": f"ERROR: {str(e)}",
+            "provider": "nvidia" if nvidia_key else "ollama",
+            "model": None,
+        }
+
+    return {
+        "query": query,
+        "response": result.get("response") or "AI service unavailable",
+        "provider": result.get("provider") or "ollama",
+        "model": result.get("model"),
+    }
 
 
 @app.get("/api/reports/schedules")

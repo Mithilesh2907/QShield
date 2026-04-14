@@ -1668,5 +1668,15 @@
     "unreachable_assets": 0,
     "expiring_soon": 0,
     "outdated_services": 0
-  }
+  },
+  "threat_surface": [
+    {
+      "domain": "vupune.ac.in",
+      "type": "*original",
+      "ip": "3.109.41.211",
+      "has_mx": true,
+      "similarity": null,
+      "risk": "LOW"
+    }
+  ]
 }
