@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import OnDemandReporting from '../components/OnDemandReporting';
 import ScheduleReporting from '../components/ScheduleReporting';
+import ExecutiveReporting from '../components/ExecutiveReporting';
 
 export default function Reports({ scanData, isLoading, error }) {
   const [activeReportView, setActiveReportView] = useState(null);
@@ -56,6 +57,7 @@ export default function Reports({ scanData, isLoading, error }) {
           <div className="mt-2">
             {activeReportView === 'ondemand' && <OnDemandReporting scanData={scanData} />}
             {activeReportView === 'schedule' && <ScheduleReporting />}
+            {activeReportView === 'executive' && <ExecutiveReporting scanData={scanData} />}
           </div>
         </div>
       ) : (
@@ -63,19 +65,26 @@ export default function Reports({ scanData, isLoading, error }) {
           {/* Cards Section */}
       <section className="col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Executive Reporting Card */}
-        <div className="glass-card rounded-2xl p-6 flex flex-col justify-between border border-transparent shadow-lg opacity-80 cursor-default transition-all">
+        <div
+          onClick={() => setActiveReportView('executive')}
+          className={`glass-card rounded-2xl p-6 flex flex-col justify-between cursor-pointer border transition-all ${
+            activeReportView === 'executive'
+              ? 'border-primary ring-2 ring-primary/20 shadow-primary/10 shadow-xl scale-[1.02]'
+              : 'border-transparent hover:border-outline-variant/30 shadow-lg hover:shadow-xl hover:-translate-y-1'
+          }`}
+        >
           <div>
-            <div className="w-12 h-12 rounded-xl bg-surface-variant flex items-center justify-center mb-5">
-              <span className="material-symbols-outlined text-on-surface-variant text-2xl">supervisor_account</span>
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+              <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>supervisor_account</span>
             </div>
-            <h3 className="text-xl font-bold text-on-surface mb-2">Executives Reporting</h3>
+            <h3 className="text-xl font-bold text-on-surface mb-2">Executive Reporting</h3>
             <p className="text-sm text-on-surface-variant font-medium leading-relaxed">
-              Board-level risk summaries, Q-VaR models, and KPI dashboards for CISO/CTO.
+              Board-level risk briefing, KPI dashboard, PQC posture, and PDF export for CISO/CTO.
             </p>
           </div>
-          <div className="mt-6 flex items-center text-on-surface-variant font-bold text-sm">
-            <span>Unavailable</span>
-            <span className="material-symbols-outlined text-sm ml-1">lock</span>
+          <div className={`mt-6 flex items-center font-bold text-sm ${activeReportView === 'executive' ? 'text-primary' : 'text-primary/80'} hover:underline`}>
+            <span>{activeReportView === 'executive' ? 'Currently viewing' : 'Get started'}</span>
+            <span className="material-symbols-outlined text-sm ml-1">chevron_right</span>
           </div>
         </div>
 
