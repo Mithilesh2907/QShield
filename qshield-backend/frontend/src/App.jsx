@@ -128,6 +128,7 @@ export default function App() {
               <Route path="monitoring" element={<Monitoring scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="security" element={<Security scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="vulnerability-scan" element={<VulnerabilityScan scanData={scanData} isLoading={isLoading} error={error} setNucleiResults={setNucleiResults} />} />
+              <Route path="threat-surface" element={<VulnerabilityScan scanData={scanData} isLoading={isLoading} error={error} setNucleiResults={setNucleiResults} defaultTab="threat-surface" />} />
               <Route path="analytics" element={<Analytics scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="reports" element={<Reports scanData={scanData} isLoading={isLoading} error={error} />} />
               <Route path="cbom" element={<CBOM scanData={scanData} isLoading={isLoading} error={error} />} />

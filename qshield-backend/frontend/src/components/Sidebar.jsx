@@ -9,10 +9,12 @@ const navItems = [
   { path: '/asset-inventory',   icon: 'account_tree', label: 'Asset Inventory',    feature: 'asset-inventory' },
   { path: '/security',          icon: 'security',     label: 'Security',           feature: 'security' },
   { path: '/vulnerability-scan',icon: 'bug_report',   label: 'Vulnerability Scan', feature: 'vulnerability-scan' },
+  { path: '/threat-surface',    icon: 'travel_explore',label: 'Threat Surface',      feature: 'threat-surface' },
   { path: '/cbom',              icon: 'inventory',    label: 'CBOM',               feature: 'cbom' },
   { path: '/cyber-rating',      icon: 'grade',        label: 'Cyber Rating',       feature: 'cyber-rating' },
   { path: '/analytics',         icon: 'policy',       label: 'Posture of PQC',     feature: 'analytics' },
   { path: '/reports',           icon: 'description',  label: 'Reports',            feature: 'reports', fill: true },
+
 ];
 
 export default function Sidebar() {

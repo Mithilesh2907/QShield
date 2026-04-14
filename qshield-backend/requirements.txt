@@ -14,3 +14,7 @@ python-dotenv
 APScheduler==3.10.4
 pyotp==2.9.0
 qrcode==8.2
+dnstwist
+dnspython
+ppdeep
+

@@ -21,6 +21,7 @@ const ROLE_PERMISSIONS = {
     'analytics',
     'reports',
     'settings',
+    'threat-surface',
     'scan',        // scan trigger button
   ],
   viewer: [
@@ -31,6 +32,7 @@ const ROLE_PERMISSIONS = {
     'cbom',
     'cyber-rating',
     'analytics',
+    'threat-surface',
   ],
   auditor: [
     'dashboard',
@@ -41,6 +43,7 @@ const ROLE_PERMISSIONS = {
     'cyber-rating',
     'analytics',
     'reports',     // auditor can view & download reports
+    'threat-surface',
   ],
   itadmin: [
     'dashboard',
@@ -52,6 +55,7 @@ const ROLE_PERMISSIONS = {
     'cyber-rating',
     'analytics',
     'settings',            // IT Admin can access settings
+    'threat-surface',
     'scan',                // scan trigger button
   ],
 };
