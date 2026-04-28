@@ -145,7 +145,7 @@ export default function ScheduleReporting() {
     setResult(null);
 
     try {
-      const res = await fetch('http://localhost:8000/api/reports/schedule', {
+      const res = await fetch('/api/reports/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

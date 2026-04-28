@@ -65,7 +65,7 @@ export default function App() {
     try {
       const use_crtsh = Boolean(options.use_crtsh);
       // Proxy setup in Vite, or complete URL if CORS is enabled
-      const response = await fetch('http://localhost:8000/scan', {
+      const response = await fetch('/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, use_crtsh })

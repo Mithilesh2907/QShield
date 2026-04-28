@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '';
 
 export async function sendAssistantQuery(query) {
   const response = await fetch(`${API_BASE}/ai-chat`, {

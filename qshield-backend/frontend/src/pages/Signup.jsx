@@ -92,7 +92,7 @@ export default function Signup() {
     if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/auth/register', {
+      const res = await fetch('/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -106,7 +106,7 @@ export default function Signup() {
         await initiate2FASetup();
       } else {
         // Login directly
-        const loginRes = await fetch('http://localhost:8000/auth/login', {
+        const loginRes = await fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ username: email, password }),
@@ -126,7 +126,7 @@ export default function Signup() {
     setLoading(true);
     try {
       // 1. Login first — new user has no 2FA yet, returns token directly
-      const loginRes = await fetch('http://localhost:8000/auth/login', {
+      const loginRes = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ username: email, password }),
@@ -135,7 +135,7 @@ export default function Signup() {
       const { access_token } = await loginRes.json();
 
       // 2. GET /auth/2fa/setup — generates TOTP secret + QR code (Bearer token required)
-      const setupRes = await fetch('http://localhost:8000/auth/2fa/setup', {
+      const setupRes = await fetch('/auth/2fa/setup', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${access_token}` },
       });
@@ -163,7 +163,7 @@ export default function Signup() {
       if (!accessToken) throw new Error('Session expired. Please restart signup.');
 
       // 3. POST /auth/2fa/enable — confirm code, activates 2FA on the account
-      const enableRes = await fetch('http://localhost:8000/auth/2fa/enable', {
+      const enableRes = await fetch('/auth/2fa/enable', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +178,7 @@ export default function Signup() {
       sessionStorage.removeItem('_signup_token');
 
       // 4. Re-login — now backend requires 2FA since it's enabled
-      const loginRes = await fetch('http://localhost:8000/auth/login', {
+      const loginRes = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ username: email, password }),
@@ -187,7 +187,7 @@ export default function Signup() {
 
       if (loginData.requires_2fa && loginData.temp_token) {
         // Same OTP code likely still valid within the 30s window
-        const verRes = await fetch('http://localhost:8000/auth/2fa/verify', {
+        const verRes = await fetch('/auth/2fa/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ temp_token: loginData.temp_token, code: otpCode }),
@@ -215,7 +215,7 @@ export default function Signup() {
     sessionStorage.removeItem('_signup_token');
     setLoading(true);
     try {
-      const loginRes = await fetch('http://localhost:8000/auth/login', {
+      const loginRes = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ username: email, password }),

@@ -37,7 +37,7 @@ export default function TwoFAVerify() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/auth/2fa/verify', {
+      const res = await fetch('/auth/2fa/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ temp_token: tempToken, code }),

@@ -2,7 +2,7 @@ import { createContext, useState, useEffect, useRef, useCallback } from 'react';
 
 export const AuthContext = createContext();
 
-const API = 'http://localhost:8000';
+const API = '';
 
 // Access token lives in memory only (not localStorage) for security.
 // Refresh token lives in localStorage — survives page reload, expires in 4 hours.

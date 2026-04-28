@@ -55,7 +55,7 @@ export default function TwoFASetup() {
 
   // Fetch current user status to know if 2FA is already on
   useEffect(() => {
-    fetch('http://localhost:8000/auth/me', {
+    fetch('/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -68,7 +68,7 @@ export default function TwoFASetup() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:8000/auth/2fa/setup', {
+      const res = await fetch('/auth/2fa/setup', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to initiate 2FA setup.');
@@ -92,7 +92,7 @@ export default function TwoFASetup() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:8000/auth/2fa/enable', {
+      const res = await fetch('/auth/2fa/enable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ code: enableCode }),
@@ -120,7 +120,7 @@ export default function TwoFASetup() {
     setIsLoading(true);
     setDisableError(null);
     try {
-      const res = await fetch('http://localhost:8000/auth/2fa/disable', {
+      const res = await fetch('/auth/2fa/disable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ code: disableCode }),

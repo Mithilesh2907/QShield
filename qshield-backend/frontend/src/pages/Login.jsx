@@ -99,7 +99,7 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/auth/login', {
+      const response = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ username: email, password }),
@@ -129,7 +129,7 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/auth/2fa/verify', {
+      const response = await fetch('/auth/2fa/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // Backend expects { temp_token, code } — NOT email

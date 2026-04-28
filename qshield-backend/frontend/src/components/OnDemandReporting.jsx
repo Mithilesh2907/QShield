@@ -496,7 +496,7 @@ export default function OnDemandReporting({ scanData }) {
       }
 
       // Send to backend
-      fetch('http://localhost:8000/api/reports/deliver', {
+      fetch('/api/reports/deliver', {
         method: 'POST',
         body: formData,
       })
